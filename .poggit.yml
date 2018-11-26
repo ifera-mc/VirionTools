@@ -4,4 +4,5 @@ branches:
 projects:
   VirionTools:
     path: ""
+    icon: meta/VirionTools.png
 ...
