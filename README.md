@@ -42,7 +42,7 @@
 |Description|Command|Aliases|Permission|Default|
 |:--:|:--:|:--:|:--:|:--:|
 |Compile a virion|`/compilevirion [string:virion]`|`cv`, `bv`, `buildvirion`|`vt.cmd.cv`|`op`|
-|Inject a virion|`/injectvirion [string:virion]`|`iv`|`vt.cmd.iv`|`op`|
+|Inject a virion|`/injectvirion [string:virion] [string:plugin]`|`iv`|`vt.cmd.iv`|`op`|
 
 ### Disclaimer
 
