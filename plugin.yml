@@ -1,0 +1,13 @@
+name: VirionTools
+main: JackMD\VirionTools\VirionTools
+api: [3.0.0]
+version: 1.0.0
+author: JackMD
+
+permissions:
+  vt.cmd.iv:
+    default: op
+    description: Allows using /injectvirion command
+  vt.cmd.cv:
+    default: op
+    description: Allows using /compilevirion command
