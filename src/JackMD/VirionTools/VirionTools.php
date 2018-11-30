@@ -2,10 +2,10 @@
 declare(strict_types = 1);
 
 /**
- *  _   _ _      _           _____           _
- * | | | (_)    (_)         |_   _|         | |
- * | | | |_ _ __ _  ___  _ __ | | ___   ___ | |___
- * | | | | | '__| |/ _ \| '_ \| |/ _ \ / _ \| / __|
+ *  _    _ _      _           _____           _
+ * | |  | (_)    (_)         |_   _|         | |
+ * | |  | |_ _ __ _  ___  _ __ | | ___   ___ | |___
+ * | |  | | | '__| |/ _ \| '_ \| |/ _ \ / _ \| / __|
  *  \ \_/ / | |  | | (_) | | | | | (_) | (_) | \__ \
  *   \___/|_|_|  |_|\___/|_| |_\_/\___/ \___/|_|___/
  *
@@ -69,12 +69,7 @@ class VirionTools extends PluginBase{
 	 * @return string
 	 */
 	public function getPHPBinary(){
-		if(PHP_OS === "WINNT"){
-			$phpBinary = $this->getServer()->getDataPath() . "bin" . DS . "php" . DS . "php.exe";
-		}else{
-			$phpBinary = $this->getServer()->getDataPath() . "bin" . DS . "php7" . DS . "bin" . DS . "php";
-		}
-		return $phpBinary;
+		return PHP_BINARY;
 	}
 	
 	/**
