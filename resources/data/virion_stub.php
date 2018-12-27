@@ -81,7 +81,21 @@ $host = new Phar($argv[1]);
 $host->startBuffering();
 
 try {
-    $status = poggit\virion\virion_infect($virus, $host, $argv[3] ?? ("_" . bin2hex(random_bytes(10))), VIRION_INFECTION_MODE_SYNTAX, $hostChanges, $viralChanges);
+	if(!isset($host["plugin.yml"])) {
+		throw new RuntimeException("plugin.yml not found, in the plugin. Aborting...", 2);
+	}
+
+	$pluginYml = yaml_parse(file_get_contents($host["plugin.yml"]));
+
+	$main = $pluginYml["main"];
+	$mainArray = explode("\\", $main);
+
+	array_pop($mainArray);
+
+	$path = implode("\\", $mainArray);
+	$prefix = $path . "\\libs\\";
+
+    $status = poggit\virion\virion_infect($virus, $host, $prefix, VIRION_INFECTION_MODE_SYNTAX, $hostChanges, $viralChanges);
     echo "Shaded $hostChanges references in host and $viralChanges references in virion.\n";
     if($status !== 0) exit($status);
 } catch(RuntimeException $e) {
