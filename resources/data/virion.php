@@ -75,14 +75,7 @@ function virion_infect(Phar $virus, Phar $host, string $prefix = "", int $mode =
         }
     }
 
-//    do {
-//        $antibody = str_replace(["+", "/"], "_", trim(base64_encode(random_bytes(10)), "="));
-//        if(ctype_digit($antibody{0})) $antibody = "_" . $antibody;
-//        $antibody = $prefix . $antibody . "\\" . $antigen;
-//    } while(isset($infectionLog[$antibody]));
-
     $antibody = $prefix . $antigen;
-
     $infectionLog[$antibody] = $virionYml;
 
     echo "Using antibody $antibody for virion $genus ({$antigen})\n";
