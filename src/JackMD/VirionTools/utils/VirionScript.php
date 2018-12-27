@@ -46,17 +46,17 @@ class VirionScript{
 			throw new \RuntimeException("virion.yml not found. Aborting...");
 		}
 
-		$pluginYml = yaml_parse_file($virionYmlPath);
+		$virionYml = yaml_parse_file($virionYmlPath);
 
 		return [
 			"compiler"     => "VirionTools",
-			"name"         => $pluginYml["name"],
-			"version"      => $pluginYml["version"],
-			"antigen"      => $pluginYml["antigen"],
-			"api"          => $pluginYml["api"],
-			"php"          => $pluginYml["php"] ?? [],
-			"description"  => $pluginYml["description"] ?? "",
-			"authors"      => $pluginYml["authors"] ?? [],
+			"name"         => $virionYml["name"],
+			"version"      => $virionYml["version"],
+			"antigen"      => $virionYml["antigen"],
+			"api"          => $virionYml["api"],
+			"php"          => $virionYml["php"] ?? [],
+			"description"  => $virionYml["description"] ?? "",
+			"authors"      => $virionYml["authors"] ?? [],
 			"creationDate" => time()
 		];
 	}
