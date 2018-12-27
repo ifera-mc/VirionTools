@@ -68,7 +68,7 @@ class InjectVirionCommand extends PluginCommand{
 			return false;
 		}
 		if((!isset($args[0])) || (!isset($args[1]))){
-			$sender->sendMessage(VirionTools::prefix . "§cUsage: §7/injectvirion [string:virion] [string:plugin]");
+			$sender->sendMessage(VirionTools::PREFIX . "§cUsage: §7/injectvirion [string:virion] [string:plugin]");
 			return false;
 		}
 		$virion = (string) $args[0];
@@ -83,16 +83,16 @@ class InjectVirionCommand extends PluginCommand{
 		$virionDirectory = $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR;
 		
 		if(!$this->plugin->virionPharExists($virion)){
-			$sender->sendMessage(VirionTools::prefix . "§cVirion with the name §d" . $virion . " §cwas not found.");
-			$sender->sendMessage(VirionTools::prefix . "§aMake sure that the virion you want to inject is located in §2plugin_data\VirionTools\builds.");
+			$sender->sendMessage(VirionTools::PREFIX . "§cVirion with the name §d" . $virion . " §cwas not found.");
+			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the virion you want to inject is located in §2plugin_data\VirionTools\builds.");
 			return false;
 		}
 		if(!$this->plugin->pluginPharExists($plugin)){
-			$sender->sendMessage(VirionTools::prefix . "§cPhar plugin with the name §d" . $plugin . " §cwas not found.");
-			$sender->sendMessage(VirionTools::prefix . "§aMake sure that the phared plugin, to which the virion is to be injected in, is located in §2plugin_data\VirionTools\plugins.");
+			$sender->sendMessage(VirionTools::PREFIX . "§cPhar plugin with the name §d" . $plugin . " §cwas not found.");
+			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the phared plugin, to which the virion is to be injected in, is located in §2plugin_data\VirionTools\plugins.");
 			return false;
 		}
-		
+
 		$command = $this->plugin->getPHPBinary() . " " . $virionDirectory . $virion . " " . $pluginDirectory . $plugin;
 		
 		$messages = explode("\n", shell_exec($command));
@@ -103,8 +103,10 @@ class InjectVirionCommand extends PluginCommand{
 			if((trim($message) === "#!/usr/bin/env php")){
 				$message = "Initiating virion injection process...";
 			}
-			$sender->sendMessage(VirionTools::prefix . str_replace(["[*] ", "[!] "], "", "§a" .$message));
+			$sender->sendMessage(VirionTools::PREFIX . str_replace(["[*] ", "[!] "], "", "§a" .$message));
 		}
+
 		return true;
 	}
+
 }
