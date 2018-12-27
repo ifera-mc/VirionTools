@@ -33,6 +33,7 @@ declare(strict_types = 1);
 
 namespace JackMD\VirionTools\commands;
 
+use JackMD\VirionTools\utils\VirionScript;
 use JackMD\VirionTools\VirionTools;
 use pocketmine\command\CommandSender;
 use pocketmine\command\PluginCommand;
@@ -56,7 +57,7 @@ class CompileVirionCommand extends PluginCommand{
 		$this->setPermission("vt.cmd.cv");
 		$this->plugin = $plugin;
 	}
-	
+
 	/**
 	 * @param CommandSender $sender
 	 * @param string        $commandLabel
@@ -68,33 +69,43 @@ class CompileVirionCommand extends PluginCommand{
 			return false;
 		}
 		if(!isset($args[0])){
-			$sender->sendMessage(VirionTools::prefix . "§cUsage: §7/cv [string:virion]");
+			$sender->sendMessage(VirionTools::PREFIX . "§cUsage: §7/cv [string:virion]");
 			return false;
 		}
 		$virion = (string) $args[0];
 		if(!$this->plugin->virionDirectoryExists($virion)){
-			$sender->sendMessage(VirionTools::prefix . "§cVirion with the name §d" . $virion . " §cwas not found.");
-			$sender->sendMessage(VirionTools::prefix . "§aMake sure that the virion you want to build is located in the virions folder and the virions folder should be located in the folder where PocketMine-MP.phar is located.");
+			$sender->sendMessage(VirionTools::PREFIX . "§cVirion with the name §d" . $virion . " §cwas not found.");
+			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the virion you want to build is located in the virions folder and the virions folder should be located in the folder where PocketMine-MP.phar is located.");
 			return false;
 		}
 		$this->plugin->addFile($virion, "virion.php");
 		$this->plugin->addFile($virion, "virion_stub.php");
 		
 		$virionDirectory = $this->plugin->getServer()->getDataPath() . "virions" . DIRECTORY_SEPARATOR;
-		$consoleScript = $this->plugin->getDataFolder() . "data" . DIRECTORY_SEPARATOR . "ConsoleScript.php";
-		$entry = $virionDirectory . $virion . DIRECTORY_SEPARATOR . "virion_stub.php";
-		
-		$command = $this->plugin->getPHPBinary() . " -dphar.readonly=0 " . $consoleScript . " --entry " . $entry . " --make " . $virionDirectory . $virion . " --out " . $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR . $virion . ".phar";
-		
-		$messages = explode("\n", shell_exec($command));
-		foreach($messages as $message){
-			if((trim($message) === "") || (trim($message) === "Setting entry point to virion_stub.php")){
-				continue;
-			}
-			$sender->sendMessage(VirionTools::prefix . "§a" . $message);
+
+		$pharPath = $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR . $virion . ".phar";
+		$basePath = $virionDirectory . $virion . "\\";
+
+		$entry = $basePath . VirionScript::VIRION_STUB_FILE_NAME;
+		$realEntry = realpath($entry);
+		if($realEntry === false){
+			throw new \RuntimeException("Entry point not found");
 		}
-		
-		$sender->sendMessage(VirionTools::prefix . "§aPhar virion has been created on §2" . $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR . $virion . ".phar");
+		$realEntry = addslashes(str_replace([$basePath, "\\"], ["", "/"], $realEntry));
+
+		$stub = sprintf(VirionScript::VIRION_ENTRY_STUB, $realEntry);
+		$metadata = VirionScript::generateVirionMetadataFromYml($basePath . "virion.yml");
+
+		$this->buildVirion($sender, $pharPath, $basePath, [], $metadata, $stub, \Phar::SHA1);
+
+		$sender->sendMessage(VirionTools::PREFIX . "§aPhar virion has been created on §2" . $pharPath);
+
 		return true;
+	}
+
+	public function buildVirion(CommandSender $sender, string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = \Phar::SHA1) : void{
+		foreach(VirionScript::buildVirion($pharPath, $basePath, $includedPaths, $metadata, $stub, $signatureAlgo, $signatureAlgo) as $line){
+			$sender->sendMessage(VirionTools::PREFIX . "§a" . $line);
+		}
 	}
 }
