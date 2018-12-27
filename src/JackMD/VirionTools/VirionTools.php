@@ -42,7 +42,7 @@ define("DS", DIRECTORY_SEPARATOR);
 class VirionTools extends PluginBase{
 	
 	/** @var string */
-	public const prefix = "§2[§6Virion§eTools§2]§r ";
+	public const PREFIX = "§2[§6Virion§eTools§2]§r ";
 	
 	public function onLoad(): void{
 		if(!is_dir($this->getDataFolder() . "builds" . DS)){
@@ -57,9 +57,8 @@ class VirionTools extends PluginBase{
 	}
 	
 	public function onEnable(): void{
-		$this->saveResource("data" . DS . "ConsoleScript.php");
-		$this->saveResource("data" . DS . "virion.php");
-		$this->saveResource("data" . DS . "virion_stub.php");
+		$this->saveResource("data" . DS . "virion.php", true);
+		$this->saveResource("data" . DS . "virion_stub.php", true);
 		$this->getServer()->getCommandMap()->register("viriontools", new CompileVirionCommand($this, "compilevirion"));
 		$this->getServer()->getCommandMap()->register("viriontools", new InjectVirionCommand($this, "injectvirion"));
 		$this->getLogger()->info("VirionTools plugin enabled.");
