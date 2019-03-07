@@ -93,7 +93,9 @@ class InjectVirionCommand extends PluginCommand{
 			return false;
 		}
 
-		$command = $this->plugin->getPHPBinary() . " " . $virionDirectory . $virion . " " . $pluginDirectory . $plugin;
+		$bin = $this->plugin->getPHPBinary();
+
+		$command = escapeshellarg($bin) . " " . escapeshellarg($virionDirectory . $virion) . " " . escapeshellarg($pluginDirectory . $plugin);
 		
 		$messages = explode("\n", shell_exec($command));
 		foreach($messages as $message){
