@@ -39,10 +39,10 @@ use pocketmine\command\CommandSender;
 use pocketmine\command\PluginCommand;
 
 class CompileVirionCommand extends PluginCommand{
-	
+
 	/** @var VirionTools */
 	private $plugin;
-	
+
 	/**
 	 * BuildVirionCommand constructor.
 	 *
@@ -51,10 +51,18 @@ class CompileVirionCommand extends PluginCommand{
 	 */
 	public function __construct(VirionTools $plugin, string $name){
 		parent::__construct($name, $plugin);
+
 		$this->setDescription("Compile a virion.phar from a virion.");
 		$this->setUsage("/cv [string:virion]");
-		$this->setAliases(["cv", "bv", "buildvirion"]);
 		$this->setPermission("vt.cmd.cv");
+		$this->setAliases(
+			[
+				"cv",
+				"bv",
+				"buildvirion"
+			]
+		);
+
 		$this->plugin = $plugin;
 	}
 
@@ -68,19 +76,25 @@ class CompileVirionCommand extends PluginCommand{
 		if(!$this->testPermission($sender)){
 			return false;
 		}
+
 		if(!isset($args[0])){
 			$sender->sendMessage(VirionTools::PREFIX . "§cUsage: §7/cv [string:virion]");
+
 			return false;
 		}
+
 		$virion = (string) $args[0];
+
 		if(!$this->plugin->virionDirectoryExists($virion)){
 			$sender->sendMessage(VirionTools::PREFIX . "§cVirion with the name §d" . $virion . " §cwas not found.");
 			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the virion you want to build is located in the virions folder and the virions folder should be located in the folder where PocketMine-MP.phar is located.");
+
 			return false;
 		}
+
 		$this->plugin->addFile($virion, "virion.php");
 		$this->plugin->addFile($virion, "virion_stub.php");
-		
+
 		$virionDirectory = $this->plugin->getServer()->getDataPath() . "virions" . DIRECTORY_SEPARATOR;
 
 		$pharPath = $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR . $virion . ".phar";
@@ -88,10 +102,24 @@ class CompileVirionCommand extends PluginCommand{
 
 		$entry = $basePath . VirionScript::VIRION_STUB_FILE_NAME;
 		$realEntry = realpath($entry);
+		
 		if($realEntry === false){
 			throw new \RuntimeException("Entry point not found");
 		}
-		$realEntry = addslashes(str_replace([$basePath, "\\"], ["", "/"], $realEntry));
+
+		$realEntry = addslashes(str_replace(
+			[
+				$basePath,
+				"\\"
+			],
+
+			[
+				"",
+				"/"
+			],
+
+			$realEntry
+		));
 
 		$stub = sprintf(VirionScript::VIRION_ENTRY_STUB, $realEntry);
 		$metadata = VirionScript::generateVirionMetadataFromYml($basePath . "virion.yml");
@@ -103,7 +131,7 @@ class CompileVirionCommand extends PluginCommand{
 		return true;
 	}
 
-	public function buildVirion(CommandSender $sender, string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = \Phar::SHA1) : void{
+	public function buildVirion(CommandSender $sender, string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = \Phar::SHA1): void{
 		foreach(VirionScript::buildVirion($pharPath, $basePath, $includedPaths, $metadata, $stub, $signatureAlgo, $signatureAlgo) as $line){
 			$sender->sendMessage(VirionTools::PREFIX . "§a" . $line);
 		}

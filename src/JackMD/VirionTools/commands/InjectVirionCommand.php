@@ -38,10 +38,10 @@ use pocketmine\command\CommandSender;
 use pocketmine\command\PluginCommand;
 
 class InjectVirionCommand extends PluginCommand{
-	
+
 	/** @var VirionTools */
 	private $plugin;
-	
+
 	/**
 	 * InjectVirionCommand constructor.
 	 *
@@ -50,13 +50,15 @@ class InjectVirionCommand extends PluginCommand{
 	 */
 	public function __construct(VirionTools $plugin, string $name){
 		parent::__construct($name, $plugin);
+
 		$this->setDescription("Inject a virion.phar into a plugin.phar");
 		$this->setUsage("/injectvirion [string:virion] [string:plugin]");
 		$this->setAliases(["iv"]);
 		$this->setPermission("vt.cmd.iv");
+
 		$this->plugin = $plugin;
 	}
-	
+
 	/**
 	 * @param CommandSender $sender
 	 * @param string        $commandLabel
@@ -67,48 +69,61 @@ class InjectVirionCommand extends PluginCommand{
 		if(!$this->testPermission($sender)){
 			return false;
 		}
+
 		if((!isset($args[0])) || (!isset($args[1]))){
 			$sender->sendMessage(VirionTools::PREFIX . "§cUsage: §7/injectvirion [string:virion] [string:plugin]");
+
 			return false;
 		}
+
 		$virion = (string) $args[0];
 		$plugin = (string) $args[1];
-		if(strpos($virion, ".phar") == false){
-			$virion  = $virion . ".phar";
+
+		if(strpos($virion, ".phar") === false){
+			$virion = $virion . ".phar";
 		}
-		if(strpos($plugin, ".phar") == false){
+
+		if(strpos($plugin, ".phar") === false){
 			$plugin = $plugin . ".phar";
 		}
+
 		$pluginDirectory = $this->plugin->getDataFolder() . "plugins" . DIRECTORY_SEPARATOR;
 		$virionDirectory = $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR;
-		
+
 		if(!$this->plugin->virionPharExists($virion)){
 			$sender->sendMessage(VirionTools::PREFIX . "§cVirion with the name §d" . $virion . " §cwas not found.");
 			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the virion you want to inject is located in §2plugin_data\VirionTools\builds.");
+
 			return false;
 		}
+
 		if(!$this->plugin->pluginPharExists($plugin)){
 			$sender->sendMessage(VirionTools::PREFIX . "§cPhar plugin with the name §d" . $plugin . " §cwas not found.");
 			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the phared plugin, to which the virion is to be injected in, is located in §2plugin_data\VirionTools\plugins.");
+
 			return false;
 		}
 
-		$bin = $this->plugin->getPHPBinary();
-
-		$command = escapeshellarg($bin) . " " . escapeshellarg($virionDirectory . $virion) . " " . escapeshellarg($pluginDirectory . $plugin);
-		
+		$command = escapeshellarg($this->plugin->getPHPBinary()) . " " . escapeshellarg($virionDirectory . $virion) . " " . escapeshellarg($pluginDirectory . $plugin);
 		$messages = explode("\n", shell_exec($command));
+
 		foreach($messages as $message){
 			if((trim($message) === "")){
 				continue;
 			}
+
 			if((trim($message) === "#!/usr/bin/env php")){
 				$message = "Initiating virion injection process...";
 			}
-			$sender->sendMessage(VirionTools::PREFIX . str_replace(["[*] ", "[!] "], "", "§a" .$message));
+
+			$sender->sendMessage(VirionTools::PREFIX . str_replace(
+				[
+					"[*] ",
+					"[!] "
+				], "", "§a" . $message)
+			);
 		}
 
 		return true;
 	}
-
 }
