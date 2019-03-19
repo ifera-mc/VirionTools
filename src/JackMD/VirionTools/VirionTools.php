@@ -59,8 +59,10 @@ class VirionTools extends PluginBase{
 	public function onEnable(): void{
 		$this->saveResource("data" . DS . "virion.php", true);
 		$this->saveResource("data" . DS . "virion_stub.php", true);
+
 		$this->getServer()->getCommandMap()->register("viriontools", new CompileVirionCommand($this, "compilevirion"));
 		$this->getServer()->getCommandMap()->register("viriontools", new InjectVirionCommand($this, "injectvirion"));
+
 		$this->getLogger()->info("VirionTools plugin enabled.");
 	}
 
@@ -84,7 +86,7 @@ class VirionTools extends PluginBase{
 	 * @return bool
 	 */
 	public function virionPharExists(string $virionName): bool{
-		return file_exists($this->getDataFolder() . "builds" . DS . $virionName . ".phar");
+		return file_exists($this->getDataFolder() . "builds" . DS . $virionName);
 	}
 
 	/**
@@ -92,7 +94,7 @@ class VirionTools extends PluginBase{
 	 * @return bool
 	 */
 	public function pluginPharExists(string $pluginName): bool{
-		return file_exists($this->getDataFolder() . "plugins" . DS . $pluginName . ".phar");
+		return file_exists($this->getDataFolder() . "plugins" . DS . $pluginName);
 	}
 
 	/**
