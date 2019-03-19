@@ -40,10 +40,10 @@ use pocketmine\plugin\PluginBase;
 define("DS", DIRECTORY_SEPARATOR);
 
 class VirionTools extends PluginBase{
-	
+
 	/** @var string */
 	public const PREFIX = "§2[§6Virion§eTools§2]§r ";
-	
+
 	public function onLoad(): void{
 		if(!is_dir($this->getDataFolder() . "builds" . DS)){
 			mkdir($this->getDataFolder() . "builds" . DS);
@@ -55,7 +55,7 @@ class VirionTools extends PluginBase{
 			mkdir($this->getDataFolder() . "data" . DS);
 		}
 	}
-	
+
 	public function onEnable(): void{
 		$this->saveResource("data" . DS . "virion.php", true);
 		$this->saveResource("data" . DS . "virion_stub.php", true);
@@ -63,56 +63,38 @@ class VirionTools extends PluginBase{
 		$this->getServer()->getCommandMap()->register("viriontools", new InjectVirionCommand($this, "injectvirion"));
 		$this->getLogger()->info("VirionTools plugin enabled.");
 	}
-	
+
 	/**
 	 * @return string
 	 */
 	public function getPHPBinary(){
 		return PHP_BINARY;
 	}
-	
+
 	/**
 	 * @param string $virionName
 	 * @return bool
 	 */
 	public function virionDirectoryExists(string $virionName): bool{
-		foreach(glob($this->getServer()->getDataPath() . "virions" . DS . "*") as $virion){
-			$virion = str_replace($this->getServer()->getDataPath() . "virions" . DS, "", $virion);
-			if($virionName === $virion){
-				return true;
-			}
-		}
-		return false;
+		return is_dir($this->getServer()->getDataPath() . "virions" . DS . $virionName);
 	}
-	
+
 	/**
 	 * @param string $virionName
 	 * @return bool
 	 */
 	public function virionPharExists(string $virionName): bool{
-		foreach(glob($this->getDataFolder() . "builds" . DS . "*.phar") as $virion){
-			$virion = str_replace($this->getDataFolder() . "builds" . DS, "", $virion);
-			if($virionName === $virion){
-				return true;
-			}
-		}
-		return false;
+		return file_exists($this->getDataFolder() . "builds" . DS . $virionName . ".phar");
 	}
-	
+
 	/**
 	 * @param string $pluginName
 	 * @return bool
 	 */
 	public function pluginPharExists(string $pluginName): bool{
-		foreach(glob($this->getDataFolder() . "plugins" . DS . "*.phar") as $virion){
-			$plugin = str_replace($this->getDataFolder() . "plugins" . DS, "", $virion);
-			if($pluginName === $plugin){
-				return true;
-			}
-		}
-		return false;
+		return file_exists($this->getDataFolder() . "plugins" . DS . $pluginName . ".phar");
 	}
-	
+
 	/**
 	 * @param string $virion
 	 * @param string $filename
@@ -120,19 +102,26 @@ class VirionTools extends PluginBase{
 	 */
 	public function addFile(string $virion, string $filename): bool{
 		$filename = "data" . DS . $filename;
-		if(\trim($filename) === ""){
-			return \false;
+
+		if(trim($filename) === ""){
+			return false;
 		}
-		if(($resource = $this->getResource($filename)) === \null){
-			return \false;
+
+		if(($resource = $this->getResource($filename)) === null){
+			return false;
 		}
+
 		$out = $this->getServer()->getDataPath() . "virions" . DS . $virion . DS . str_replace("data" . DS, "", $filename);
-		if(!\file_exists(\dirname($out))){
-			\mkdir(\dirname($out), 0755, \true);
+
+		if(!file_exists(dirname($out))){
+			mkdir(dirname($out), 0755, true);
 		}
-		$ret = \stream_copy_to_stream($resource, $fp = \fopen($out, "wb")) > 0;
-		\fclose($fp);
-		\fclose($resource);
+
+		$ret = stream_copy_to_stream($resource, $fp = fopen($out, "wb")) > 0;
+
+		fclose($fp);
+		fclose($resource);
+
 		return $ret;
 	}
 }
