@@ -38,6 +38,8 @@ use Phar;
 class VirionCompileScript{
 
 	/*
+	 * Note:
+	 *
 	 * This file is an edited version of DevTools ConsoleScript.
 	 *
 	 * Kudos to the creator/maintainer of that plugin.
