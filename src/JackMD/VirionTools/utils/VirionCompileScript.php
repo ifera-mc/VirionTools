@@ -35,11 +35,17 @@ namespace JackMD\VirionTools\utils;
 
 use Phar;
 
-class VirionScript{
+class VirionCompileScript{
 
-	public const VIRION_ENTRY_STUB = '<?php require("phar://" . __FILE__ . "/%s"); __HALT_COMPILER();';
+	public const VIRION_STUB = '
+<?php
+echo "PocketMine-MP virion %s v%s
+This file has been generated using VirionTools v%s at %s
+----------------
+";
 
-	public const VIRION_STUB_FILE_NAME = 'virion_stub.php';
+__HALT_COMPILER();
+';
 
 	public static function generateVirionMetadataFromYml(string $virionYmlPath): ?array{
 		if(!file_exists($virionYmlPath)){
