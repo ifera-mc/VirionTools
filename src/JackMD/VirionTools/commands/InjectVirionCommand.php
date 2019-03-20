@@ -33,9 +33,12 @@ declare(strict_types = 1);
 
 namespace JackMD\VirionTools\commands;
 
+use JackMD\VirionTools\utils\VirionInjectScript;
 use JackMD\VirionTools\VirionTools;
 use pocketmine\command\CommandSender;
 use pocketmine\command\PluginCommand;
+
+use Phar;
 
 class InjectVirionCommand extends PluginCommand{
 
@@ -46,10 +49,9 @@ class InjectVirionCommand extends PluginCommand{
 	 * InjectVirionCommand constructor.
 	 *
 	 * @param VirionTools $plugin
-	 * @param string      $name
 	 */
-	public function __construct(VirionTools $plugin, string $name){
-		parent::__construct($name, $plugin);
+	public function __construct(VirionTools $plugin){
+		parent::__construct("injectvirion", $plugin);
 
 		$this->setDescription("Inject a virion.phar into a plugin.phar");
 		$this->setUsage("/injectvirion [string:virion] [string:plugin]");
@@ -63,17 +65,16 @@ class InjectVirionCommand extends PluginCommand{
 	 * @param CommandSender $sender
 	 * @param string        $commandLabel
 	 * @param array         $args
-	 * @return bool|mixed
 	 */
-	public function execute(CommandSender $sender, string $commandLabel, array $args){
+	public function execute(CommandSender $sender, string $commandLabel, array $args): void{
 		if(!$this->testPermission($sender)){
-			return false;
+			return;
 		}
 
 		if((!isset($args[0])) || (!isset($args[1]))){
 			$sender->sendMessage(VirionTools::PREFIX . "§cUsage: §7/injectvirion [string:virion] [string:plugin]");
 
-			return false;
+			return;
 		}
 
 		$virion = (string) $args[0];
@@ -94,36 +95,20 @@ class InjectVirionCommand extends PluginCommand{
 			$sender->sendMessage(VirionTools::PREFIX . "§cVirion with the name §d" . $virion . " §cwas not found.");
 			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the virion you want to inject is located in §2plugin_data\VirionTools\builds.");
 
-			return false;
+			return;
 		}
 
 		if(!$this->plugin->pluginPharExists($plugin)){
 			$sender->sendMessage(VirionTools::PREFIX . "§cPhar plugin with the name §d" . $plugin . " §cwas not found.");
 			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the phared plugin, to which the virion is to be injected in, is located in §2plugin_data\VirionTools\plugins.");
 
-			return false;
+			return;
 		}
 
-		$command = escapeshellarg($this->plugin->getPHPBinary()) . " " . escapeshellarg($virionDirectory . $virion) . " " . escapeshellarg($pluginDirectory . $plugin);
-		$messages = explode("\n", shell_exec($command));
-
-		foreach($messages as $message){
-			if((trim($message) === "")){
-				continue;
-			}
-
-			if((trim($message) === "#!/usr/bin/env php")){
-				$message = "Initiating virion injection process...";
-			}
-
-			$sender->sendMessage(VirionTools::PREFIX . str_replace(
-				[
-					"[*] ",
 					"[!] "
-				], "", "§a" . $message)
-			);
-		}
+		$virus = new Phar($virionDirectory . $virion);
+		$host = new Phar($pluginDirectory . $plugin);
 
-		return true;
+		VirionInjectScript::virion_infect($virion, $virus, $plugin, $host);
 	}
 }
