@@ -37,6 +37,13 @@ use Phar;
 
 class VirionCompileScript{
 
+	/*
+	 * This file is an edited version of DevTools ConsoleScript.
+	 *
+	 * Kudos to the creator/maintainer of that plugin.
+	 */
+
+	/** @var string */
 	public const VIRION_STUB = '
 <?php
 echo "PocketMine-MP virion %s v%s
@@ -47,6 +54,10 @@ This file has been generated using VirionTools v%s at %s
 __HALT_COMPILER();
 ';
 
+	/**
+	 * @param string $virionYmlPath
+	 * @return array|null
+	 */
 	public static function generateVirionMetadataFromYml(string $virionYmlPath): ?array{
 		if(!file_exists($virionYmlPath)){
 			throw new \RuntimeException("virion.yml not found. Aborting...");
@@ -67,6 +78,16 @@ __HALT_COMPILER();
 		];
 	}
 
+	/**
+	 * @param string   $pharPath
+	 * @param string   $basePath
+	 * @param array    $includedPaths
+	 * @param array    $metadata
+	 * @param string   $stub
+	 * @param int      $signatureAlgo
+	 * @param int|null $compression
+	 * @return \Generator
+	 */
 	public static function buildVirion(string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = Phar::SHA1, ?int $compression = null){
 		if(file_exists($pharPath)){
 			yield "Phar file already exists, overwriting...";
