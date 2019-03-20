@@ -33,7 +33,7 @@ declare(strict_types = 1);
 
 namespace JackMD\VirionTools\commands;
 
-use JackMD\VirionTools\utils\VirionScript;
+use JackMD\VirionTools\utils\VirionCompileScript;
 use JackMD\VirionTools\VirionTools;
 use pocketmine\command\CommandSender;
 use pocketmine\command\PluginCommand;
@@ -44,13 +44,12 @@ class CompileVirionCommand extends PluginCommand{
 	private $plugin;
 
 	/**
-	 * BuildVirionCommand constructor.
+	 * CompileVirionCommand constructor.
 	 *
 	 * @param VirionTools $plugin
-	 * @param string      $name
 	 */
-	public function __construct(VirionTools $plugin, string $name){
-		parent::__construct($name, $plugin);
+	public function __construct(VirionTools $plugin){
+		parent::__construct("compilevirion", $plugin);
 
 		$this->setDescription("Compile a virion.phar from a virion.");
 		$this->setUsage("/cv [string:virion]");
@@ -70,17 +69,16 @@ class CompileVirionCommand extends PluginCommand{
 	 * @param CommandSender $sender
 	 * @param string        $commandLabel
 	 * @param array         $args
-	 * @return bool|mixed
 	 */
-	public function execute(CommandSender $sender, string $commandLabel, array $args){
+	public function execute(CommandSender $sender, string $commandLabel, array $args): void{
 		if(!$this->testPermission($sender)){
-			return false;
+			return;
 		}
 
 		if(!isset($args[0])){
 			$sender->sendMessage(VirionTools::PREFIX . "§cUsage: §7/cv [string:virion]");
 
-			return false;
+			return;
 		}
 
 		$virion = (string) $args[0];
@@ -89,50 +87,44 @@ class CompileVirionCommand extends PluginCommand{
 			$sender->sendMessage(VirionTools::PREFIX . "§cVirion with the name §d" . $virion . " §cwas not found.");
 			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the virion you want to build is located in the virions folder and the virions folder should be located in the folder where PocketMine-MP.phar is located.");
 
-			return false;
+			return;
 		}
-
-		$this->plugin->addFile($virion, "virion.php");
-		$this->plugin->addFile($virion, "virion_stub.php");
 
 		$virionDirectory = $this->plugin->getServer()->getDataPath() . "virions" . DIRECTORY_SEPARATOR;
 
 		$pharPath = $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR . $virion . ".phar";
 		$basePath = $virionDirectory . $virion . "\\";
 
-		$entry = $basePath . VirionScript::VIRION_STUB_FILE_NAME;
-		$realEntry = realpath($entry);
-		
-		if($realEntry === false){
-			throw new \RuntimeException("Entry point not found");
+		if(!file_exists($basePath . "virion.yml")){
+			$sender->sendMessage(VirionTools::PREFIX . "§cvirion.yml not found in virion §6$virion");
+
+			return;
 		}
 
-		$realEntry = addslashes(str_replace(
-			[
-				$basePath,
-				"\\"
-			],
+		$virionYml = yaml_parse(file_get_contents($basePath . "virion.yml"));
 
-			[
-				"",
-				"/"
-			],
+		if(!is_array($virionYml)){
+			$sender->sendMessage(VirionTools::PREFIX . "§cCorrupted virion.yml, could not use virion §6$virion");
 
-			$realEntry
-		));
+			return;
+		}
 
-		$stub = sprintf(VirionScript::VIRION_ENTRY_STUB, $realEntry);
-		$metadata = VirionScript::generateVirionMetadataFromYml($basePath . "virion.yml");
+		if(!isset($virionYml["name"]) || (!isset($virionYml["version"]))){
+			$sender->sendMessage(VirionTools::PREFIX . "§cEither §4name §cor §4version §ckey is missing in §4virion.yml §cof virion §6$virion");
+
+			return;
+		}
+
+		$metadata = VirionCompileScript::generateVirionMetadataFromYml($basePath . "virion.yml");
+		$stub = sprintf(VirionCompileScript::VIRION_STUB, $virionYml["name"], $virionYml["version"], $this->plugin->getDescription()->getVersion(), date("r"));
 
 		$this->buildVirion($sender, $pharPath, $basePath, [], $metadata, $stub, \Phar::SHA1);
 
 		$sender->sendMessage(VirionTools::PREFIX . "§aPhar virion has been created on §2" . $pharPath);
-
-		return true;
 	}
 
 	public function buildVirion(CommandSender $sender, string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = \Phar::SHA1): void{
-		foreach(VirionScript::buildVirion($pharPath, $basePath, $includedPaths, $metadata, $stub, $signatureAlgo, $signatureAlgo) as $line){
+		foreach(VirionCompileScript::buildVirion($pharPath, $basePath, $includedPaths, $metadata, $stub, $signatureAlgo, $signatureAlgo) as $line){
 			$sender->sendMessage(VirionTools::PREFIX . "§a" . $line);
 		}
 	}
