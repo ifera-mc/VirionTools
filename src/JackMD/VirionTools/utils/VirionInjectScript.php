@@ -33,13 +33,14 @@ declare(strict_types = 1);
 
 namespace JackMD\VirionTools\utils;
 
-use AssertionError;
 use JackMD\VirionTools\VirionTools;
+use pocketmine\command\CommandSender;
 
 use Phar;
-use pocketmine\Server;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use RuntimeException;
+use AssertionError;
 
 class VirionInjectScript{
 
@@ -53,47 +54,47 @@ class VirionInjectScript{
 	 */
 
 	/**
-	 * @param string $virusName
-	 * @param Phar   $virus
-	 * @param string $hostName
-	 * @param Phar   $host
+	 * @param CommandSender $sender
+	 * @param string        $virusName
+	 * @param Phar          $virus
+	 * @param string        $hostName
+	 * @param Phar          $host
+	 * @return bool
 	 */
-	public static function virion_infect(string $virusName, Phar $virus, string $hostName, Phar $host): void{
-		$logger = Server::getInstance()->getLogger();
-
+	public static function virion_infect(CommandSender $sender, string $virusName, Phar $virus, string $hostName, Phar $host): bool{
 		$virus->startBuffering();
 		$host->startBuffering();
 
 		/* Check to make sure virion.yml exists in the virion */
 		if(!isset($virus["virion.yml"])){
-			$logger->error(VirionTools::PREFIX . "§cvirion.yml not found in §6$virusName");
+			$sender->sendMessage(VirionTools::PREFIX . "§cvirion.yml not found in §6$virusName");
 
-			return;
+			return false;
 		}
 
 		$virusPath = "phar://" . str_replace(DIRECTORY_SEPARATOR, "/", $virus->getPath()) . "/";
 		$virionYml = yaml_parse(file_get_contents($virusPath . "virion.yml"));
 
 		if(!is_array($virionYml)){
-			$logger->error(VirionTools::PREFIX . "§cCorrupted virion.yml, could not activate virion §6$virusName");
+			$sender->sendMessage(VirionTools::PREFIX . "§cCorrupted virion.yml, could not activate virion §6$virusName");
 
-			return;
+			return false;
 		}
 
 		/* Check to make sure plugin.yml exists in the plugin */
 		if(!isset($host["plugin.yml"])){
-			$logger->error(VirionTools::PREFIX . "§cplugin.yml not found in §6$hostName");
+			$sender->sendMessage(VirionTools::PREFIX . "§cplugin.yml not found in §6$hostName");
 
-			return;
+			return false;
 		}
 
 		$hostPath = "phar://" . str_replace(DIRECTORY_SEPARATOR, "/", $host->getPath()) . "/";
 		$pluginYml = yaml_parse(file_get_contents($hostPath . "plugin.yml"));
 
 		if(!is_array($pluginYml)){
-			$logger->error(VirionTools::PREFIX . "§cCorrupted plugin.yml found in plugin §6$hostName");
+			$sender->sendMessage(VirionTools::PREFIX . "§cCorrupted plugin.yml found in plugin §6$hostName");
 
-			return;
+			return false;
 		}
 
 		/* Infection Log. File that keeps all the virions injected into the plugin */
@@ -106,18 +107,16 @@ class VirionInjectScript{
 
 		foreach($infectionLog as $old){
 			if($old["antigen"] === $antigen){
-				$logger->error(VirionTools::PREFIX . "§cPlugin §6$hostName §cis already infected with §d$virusName");
+				$sender->sendMessage(VirionTools::PREFIX . "§cPlugin §6$hostName §cis already infected with §d$virusName");
 
-				return;
+				return false;
 			}
 		}
-
-		$start = microtime(true);
 
 		$antibody = self::getPrefix($pluginYml) . $antigen;
 		$infectionLog[$antibody] = $virionYml;
 
-		$logger->info(VirionTools::PREFIX . "§aUsing antibody §2$antibody §afor virion §d$genus §2({$antigen})");
+		$sender->sendMessage(VirionTools::PREFIX . "§aUsing antibody §2$antibody §afor virion §d$genus §2({$antigen})");
 
 		$hostPharPath = "phar://" . str_replace(DIRECTORY_SEPARATOR, "/", $host->getPath());
 
@@ -155,7 +154,7 @@ class VirionInjectScript{
 				$host[$rel] = file_get_contents($name);
 			}elseif(strpos($rel, "src/") === 0){
 				if(strpos($rel, $restriction) !== 0){
-					$logger->warning(VirionTools::PREFIX . "§cWarning: File $rel in virion is not under the antigen $antigen ($restriction)");
+					$sender->sendMessage(VirionTools::PREFIX . "§cWarning: File $rel in virion is not under the antigen $antigen ($restriction)");
 
 					$newRel = $rel;
 				}else{
@@ -173,8 +172,9 @@ class VirionInjectScript{
 		$virus->stopBuffering();
 		$host->stopBuffering();
 
-		$logger->info(VirionTools::PREFIX . "§aShaded §c$hostChanges §areferences in §6$hostName §aand §c$viralChanges §areferences in §d$virusName.");
-		$logger->info(VirionTools::PREFIX . "§aDone in " . round(microtime(true) - $start, 3) . "s");
+		$sender->sendMessage(VirionTools::PREFIX . "§aShaded §c$hostChanges §areferences in §6$hostName §aand §c$viralChanges §areferences in §d$virusName.");
+
+		return true;
 	}
 
 	/**
@@ -243,7 +243,7 @@ class VirionInjectScript{
 
 							++$count;
 						}elseif(stripos($current, $antigen) === 0){
-							Server::getInstance()->getLogger()->warning(VirionTools::PREFIX . "§c[WARNING] Not replacing FQN §2$current §ccase-insensitively.");
+							throw new RuntimeException("§c[WARNING] Not replacing FQN §2$current §ccase-insensitively.");
 						}
 
 						unset($init, $current, $prefixToken);

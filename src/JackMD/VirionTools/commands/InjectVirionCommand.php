@@ -105,9 +105,16 @@ class InjectVirionCommand extends PluginCommand{
 			return;
 		}
 
+		$start = microtime(true);
+
+		$sender->sendMessage(VirionTools::PREFIX . "§aInitiating virion injection process");
+
 		$virus = new Phar($virionDirectory . $virion);
 		$host = new Phar($pluginDirectory . $plugin);
 
-		VirionInjectScript::virion_infect($virion, $virus, $plugin, $host);
+		if(VirionInjectScript::virion_infect($sender, $virion, $virus, $plugin, $host)){
+			$sender->sendMessage(VirionTools::PREFIX . "§aDone in " . round(microtime(true) - $start, 3) . "s");
+			$sender->sendMessage(VirionTools::PREFIX . "§aVirion §d$virion §asuccessfully injected in plugin §6$plugin");
+		}
 	}
 }
