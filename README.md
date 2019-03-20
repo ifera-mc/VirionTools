@@ -38,6 +38,17 @@
 - Note: Adding the `.phar` extension doesn't matter. The plugin will add it itself.
 - After successful virion injection, the injected plugin would be present in `plugin_data\VirionTools\plugins` folder.
 
+### Inject all Virions
+
+- To **inject all virions** into the plugin you can use this [script](https://gist.github.com/JackMD/391708fe908cf6b878c87538f458246e).
+- Its a script. Treat it as a plugin.
+- Make sure the virions required by the plugin are already compliled.
+- Most importantly make a `virions` key in `plugin.yml` of the plugin.
+- List all the virions required by your plugin under it.
+- Next run the command `/injectall [string:plugin]` Aliases for `injectall` are `ia` and `id`.
+- The `[string:plugin]` should be the name of the plugin located in `plugin_data\VirionTools\plugins` folder.
+- After successful virions injection, the injected plugin would be present in `plugin_data\VirionTools\plugins` folder.
+
 ### Commands and Permissions
 
 |Description|Command|Aliases|Permission|Default|
