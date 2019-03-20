@@ -105,7 +105,6 @@ class InjectVirionCommand extends PluginCommand{
 			return;
 		}
 
-					"[!] "
 		$virus = new Phar($virionDirectory . $virion);
 		$host = new Phar($pluginDirectory . $plugin);
 
