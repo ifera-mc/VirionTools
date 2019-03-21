@@ -115,15 +115,58 @@ class CompileVirionCommand extends PluginCommand{
 			return;
 		}
 
+		$this->plugin->addFile($virion, "virion.php");
+		$this->plugin->addFile($virion, "virion_stub.php");
+
+		$stub = $this->getStub($basePath);
 		$metadata = VirionCompileScript::generateVirionMetadataFromYml($basePath . "virion.yml");
-		$stub = sprintf(VirionCompileScript::VIRION_STUB, $virionYml["name"], $virionYml["version"], $this->plugin->getDescription()->getVersion(), date("r"));
 
 		$this->buildVirion($sender, $pharPath, $basePath, [], $metadata, $stub, \Phar::SHA1);
 
 		$sender->sendMessage(VirionTools::PREFIX . "§aPhar virion has been created on §2" . $pharPath);
 	}
 
-	public function buildVirion(CommandSender $sender, string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = \Phar::SHA1): void{
+	/**
+	 * @param string $basePath
+	 * @return string
+	 */
+	private function getStub(string $basePath): string{
+		$entry = $basePath . VirionCompileScript::VIRION_STUB_FILE_NAME;
+		$realEntry = realpath($entry);
+
+		if($realEntry === false){
+			throw new \RuntimeException("Entry point not found");
+		}
+
+		$realEntry = addslashes(str_replace(
+			[
+				$basePath,
+				"\\"
+			],
+
+			[
+				"",
+				"/"
+			],
+
+			$realEntry
+		));
+
+		$stub = sprintf(VirionCompileScript::VIRION_STUB, $realEntry);
+
+		return $stub;
+	}
+
+	/**
+	 * @param CommandSender $sender
+	 * @param string        $pharPath
+	 * @param string        $basePath
+	 * @param array         $includedPaths
+	 * @param array         $metadata
+	 * @param string        $stub
+	 * @param int           $signatureAlgo
+	 */
+	private function buildVirion(CommandSender $sender, string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = \Phar::SHA1): void{
 		foreach(VirionCompileScript::buildVirion($pharPath, $basePath, $includedPaths, $metadata, $stub, $signatureAlgo, $signatureAlgo) as $line){
 			$sender->sendMessage(VirionTools::PREFIX . "§a" . $line);
 		}

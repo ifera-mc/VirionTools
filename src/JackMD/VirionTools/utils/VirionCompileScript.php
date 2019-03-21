@@ -46,15 +46,10 @@ class VirionCompileScript{
 	 */
 
 	/** @var string */
-	public const VIRION_STUB = '
-<?php
-echo "PocketMine-MP virion %s v%s
-This file has been generated using VirionTools v%s at %s
-----------------
-";
+	public const VIRION_STUB = '<?php require("phar://" . __FILE__ . "/%s"); __HALT_COMPILER();';
 
-__HALT_COMPILER();
-';
+	/** @var string */
+	public const VIRION_STUB_FILE_NAME = 'virion_stub.php';
 
 	/**
 	 * @param string $virionYmlPath
