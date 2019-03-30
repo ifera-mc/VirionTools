@@ -93,7 +93,7 @@ class CompileVirionCommand extends PluginCommand{
 		$virionDirectory = $this->plugin->getServer()->getDataPath() . "virions" . DIRECTORY_SEPARATOR;
 
 		$pharPath = $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR . $virion . ".phar";
-		$basePath = $virionDirectory . $virion . "\\";
+		$basePath = $virionDirectory . $virion . DIRECTORY_SEPARATOR;
 
 		if(!file_exists($basePath . "virion.yml")){
 			$sender->sendMessage(VirionTools::PREFIX . "§cvirion.yml not found in virion §6$virion");
