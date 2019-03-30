@@ -101,8 +101,8 @@ class VirionCompileScript{
 		$phar->setSignatureAlgorithm($signatureAlgo);
 		$phar->startBuffering();
 
-		$excludedSubstrings = preg_quote_array([realpath($pharPath)], '/');
-		$folderPatterns = preg_quote_array([
+		$excludedSubstrings = self::preg_quote_array([realpath($pharPath)], '/');
+		$folderPatterns = self::preg_quote_array([
 			DIRECTORY_SEPARATOR . 'tests' . DIRECTORY_SEPARATOR,
 			DIRECTORY_SEPARATOR . '.'
 		], '/');
@@ -115,7 +115,7 @@ class VirionCompileScript{
 		$regex = sprintf('/^(?!.*(%s))^%s(%s).*/i',
 			implode('|', $excludedSubstrings),
 			preg_quote($basePath, '/'),
-			implode('|', preg_quote_array($includedPaths, '/'))
+			implode('|', self::preg_quote_array($includedPaths, '/'))
 		);
 
 		$directory = new \RecursiveDirectoryIterator($basePath, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS | \FilesystemIterator::CURRENT_AS_PATHNAME);
@@ -139,5 +139,14 @@ class VirionCompileScript{
 		$phar->stopBuffering();
 
 		yield "Done in " . round(microtime(true) - $start, 3) . "s";
+	}
+
+	/**
+	 * @param array       $strings
+	 * @param string|null $delim
+	 * @return array
+	 */
+	private static function preg_quote_array(array $strings, string $delim = null) : array{
+		return array_map(function(string $str) use ($delim) : string{ return preg_quote($str, $delim); }, $strings);
 	}
 }
