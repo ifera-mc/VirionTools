@@ -62,10 +62,9 @@ class InjectAllCommand extends PluginCommand{
 
 		$this->setDescription("Inject all virions in the plugin using a single command.");
 		$this->setUsage("/injectall [string:plugin]");
-		$this->setPermission("vt.cmd.id");
+		$this->setPermission("vt.cmd.ia");
 		$this->setAliases(
 			[
-				"id",
 				"ia"
 			]
 		);

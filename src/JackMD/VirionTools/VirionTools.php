@@ -34,6 +34,7 @@ declare(strict_types = 1);
 namespace JackMD\VirionTools;
 
 use JackMD\VirionTools\commands\CompileVirionCommand;
+use JackMD\VirionTools\commands\InjectAllCommand;
 use JackMD\VirionTools\commands\InjectVirionCommand;
 use pocketmine\plugin\PluginBase;
 
@@ -57,9 +58,17 @@ class VirionTools extends PluginBase{
 	}
 
 	public function onEnable(): void{
-		$this->getServer()->getCommandMap()->register("viriontools", new CompileVirionCommand($this));
-		$this->getServer()->getCommandMap()->register("viriontools", new InjectVirionCommand($this));
+		$commands = [
+			new CompileVirionCommand($this),
+			new InjectVirionCommand($this),
+			new InjectAllCommand($this)
+		];
+
+		foreach($commands as $command){
+			$this->getServer()->getCommandMap()->register("viriontools", $command);
+		}
 	}
+
 	/**
 	 * @param string $virionName
 	 * @return bool
