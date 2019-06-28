@@ -33,14 +33,13 @@ declare(strict_types = 1);
 
 namespace JackMD\VirionTools\utils;
 
+use AssertionError;
 use JackMD\VirionTools\VirionTools;
-use pocketmine\command\CommandSender;
-
 use Phar;
+use pocketmine\command\CommandSender;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
-use AssertionError;
 
 class VirionInjectScript{
 
@@ -62,7 +61,7 @@ class VirionInjectScript{
 	 * @return bool
 	 */
 	public static function virion_infect(CommandSender $sender, string $virusName, Phar $virus, string $hostName, Phar $host): bool{
-		$virus->startBuffering();
+		//$virus->startBuffering();
 		$host->startBuffering();
 
 		/* Check to make sure virion.yml exists in the virion */
@@ -169,7 +168,7 @@ class VirionInjectScript{
 
 		$host["virus-infections.json"] = json_encode($infectionLog);
 
-		$virus->stopBuffering();
+		//$virus->stopBuffering();
 		$host->stopBuffering();
 
 		$sender->sendMessage(VirionTools::PREFIX . "§aShaded §c$hostChanges §areferences in §6$hostName §aand §c$viralChanges §areferences in §d$virusName.");
