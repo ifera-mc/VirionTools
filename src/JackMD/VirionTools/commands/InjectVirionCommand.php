@@ -1,5 +1,5 @@
 <?php
-declare(strict_types = 1);
+declare(strict_types=1);
 
 /**
  *  _    _ _      _           _____           _
@@ -35,23 +35,25 @@ namespace JackMD\VirionTools\commands;
 
 use JackMD\VirionTools\utils\VirionInjectScript;
 use JackMD\VirionTools\VirionTools;
-use pocketmine\command\CommandSender;
-use pocketmine\command\PluginCommand;
-
 use Phar;
+use pocketmine\command\Command;
+use pocketmine\command\CommandSender;
+use pocketmine\plugin\Plugin;
+use pocketmine\plugin\PluginOwned;
 
-class InjectVirionCommand extends PluginCommand{
+class InjectVirionCommand extends Command implements PluginOwned
+{
 
 	/** @var VirionTools */
-	private $plugin;
+	private VirionTools $plugin;
 
 	/**
 	 * InjectVirionCommand constructor.
 	 *
 	 * @param VirionTools $plugin
 	 */
-	public function __construct(VirionTools $plugin){
-		parent::__construct("injectvirion", $plugin);
+	public function __construct(VirionTools $plugin) {
+		parent::__construct("injectvirion");
 
 		$this->setDescription("Inject a virion.phar into a plugin.phar");
 		$this->setUsage("/injectvirion [string:virion] [string:plugin]");
@@ -63,42 +65,42 @@ class InjectVirionCommand extends PluginCommand{
 
 	/**
 	 * @param CommandSender $sender
-	 * @param string        $commandLabel
-	 * @param array         $args
+	 * @param string $commandLabel
+	 * @param array $args
 	 */
-	public function execute(CommandSender $sender, string $commandLabel, array $args): void{
-		if(!$this->testPermission($sender)){
+	public function execute(CommandSender $sender, string $commandLabel, array $args): void {
+		if (!$this->testPermission($sender)) {
 			return;
 		}
 
-		if((!isset($args[0])) || (!isset($args[1]))){
+		if ((!isset($args[0])) || (!isset($args[1]))) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cUsage: §7/injectvirion [string:virion] [string:plugin]");
 
 			return;
 		}
 
-		$virion = (string) $args[0];
-		$plugin = (string) $args[1];
+		$virion = (string)$args[0];
+		$plugin = (string)$args[1];
 
-		if(strpos($virion, ".phar") === false){
+		if (!str_contains($virion, ".phar")) {
 			$virion = $virion . ".phar";
 		}
 
-		if(strpos($plugin, ".phar") === false){
+		if (!str_contains($plugin, ".phar")) {
 			$plugin = $plugin . ".phar";
 		}
 
 		$pluginDirectory = $this->plugin->getDataFolder() . "plugins" . DIRECTORY_SEPARATOR;
 		$virionDirectory = $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR;
 
-		if(!$this->plugin->virionPharExists($virion)){
+		if (!$this->plugin->virionPharExists($virion)) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cVirion with the name §d" . $virion . " §cwas not found.");
 			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the virion you want to inject is located in §2plugin_data\VirionTools\builds.");
 
 			return;
 		}
 
-		if(!$this->plugin->pluginPharExists($plugin)){
+		if (!$this->plugin->pluginPharExists($plugin)) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cPhar plugin with the name §d" . $plugin . " §cwas not found.");
 			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the phared plugin, to which the virion is to be injected in, is located in §2plugin_data\VirionTools\plugins.");
 
@@ -112,9 +114,13 @@ class InjectVirionCommand extends PluginCommand{
 		$virus = new Phar($virionDirectory . $virion);
 		$host = new Phar($pluginDirectory . $plugin);
 
-		if(VirionInjectScript::virion_infect($sender, $virion, $virus, $plugin, $host)){
+		if (VirionInjectScript::virion_infect($sender, $virion, $virus, $plugin, $host)) {
 			$sender->sendMessage(VirionTools::PREFIX . "§aDone in " . round(microtime(true) - $start, 3) . "s");
 			$sender->sendMessage(VirionTools::PREFIX . "§aVirion §d$virion §asuccessfully injected in plugin §6$plugin");
 		}
+	}
+
+	public function getOwningPlugin(): Plugin {
+		return $this->plugin;
 	}
 }

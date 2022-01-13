@@ -1,5 +1,5 @@
 <?php
-declare(strict_types = 1);
+declare(strict_types=1);
 
 /**
  *  _    _ _      _           _____           _
@@ -33,9 +33,18 @@ declare(strict_types = 1);
 
 namespace JackMD\VirionTools\utils;
 
+use FilesystemIterator;
+use Generator;
 use Phar;
+use PharException;
+use PharFileInfo;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use RegexIterator;
+use RuntimeException;
 
-class VirionCompileScript{
+class VirionCompileScript
+{
 
 	/*
 	 * Note:
@@ -55,38 +64,39 @@ class VirionCompileScript{
 	 * @param string $virionYmlPath
 	 * @return array|null
 	 */
-	public static function generateVirionMetadataFromYml(string $virionYmlPath): ?array{
-		if(!file_exists($virionYmlPath)){
-			throw new \RuntimeException("virion.yml not found. Aborting...");
+	public static function generateVirionMetadataFromYml(string $virionYmlPath): ?array {
+		if (!file_exists($virionYmlPath)) {
+			throw new RuntimeException("virion.yml not found. Aborting...");
 		}
 
 		$virionYml = yaml_parse_file($virionYmlPath);
 
 		return [
-			"compiler"     => "VirionTools",
-			"name"         => $virionYml["name"],
-			"version"      => $virionYml["version"],
-			"antigen"      => $virionYml["antigen"],
-			"api"          => $virionYml["api"],
-			"php"          => $virionYml["php"] ?? [],
-			"description"  => $virionYml["description"] ?? "",
-			"authors"      => $virionYml["authors"] ?? [],
+			"compiler" => "VirionTools",
+			"name" => $virionYml["name"],
+			"version" => $virionYml["version"],
+			"antigen" => $virionYml["antigen"],
+			"api" => $virionYml["api"],
+			"php" => $virionYml["php"] ?? [],
+			"description" => $virionYml["description"] ?? "",
+			"authors" => $virionYml["authors"] ?? [],
 			"creationDate" => time()
 		];
 	}
 
 	/**
-	 * @param string   $pharPath
-	 * @param string   $basePath
-	 * @param array    $includedPaths
-	 * @param array    $metadata
-	 * @param string   $stub
-	 * @param int      $signatureAlgo
+	 * @param string $pharPath
+	 * @param string $basePath
+	 * @param array $includedPaths
+	 * @param array $metadata
+	 * @param string $stub
+	 * @param int $signatureAlgo
 	 * @param int|null $compression
-	 * @return \Generator
+	 * @return Generator
+	 * @throws PharException
 	 */
-	public static function buildVirion(string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = Phar::SHA1, ?int $compression = null){
-		if(file_exists($pharPath)){
+	public static function buildVirion(string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = Phar::SHA1, ?int $compression = null): Generator {
+		if (file_exists($pharPath)) {
 			yield "Phar file already exists, overwriting...";
 
 			Phar::unlinkArchive($pharPath);
@@ -108,7 +118,7 @@ class VirionCompileScript{
 		], '/');
 		$basePattern = preg_quote(rtrim($basePath, DIRECTORY_SEPARATOR), '/');
 
-		foreach($folderPatterns as $p){
+		foreach ($folderPatterns as $p) {
 			$excludedSubstrings[] = $basePattern . '.*' . $p;
 		}
 
@@ -118,19 +128,19 @@ class VirionCompileScript{
 			implode('|', self::preg_quote_array($includedPaths, '/'))
 		);
 
-		$directory = new \RecursiveDirectoryIterator($basePath, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS | \FilesystemIterator::CURRENT_AS_PATHNAME);
-		$iterator = new \RecursiveIteratorIterator($directory);
-		$regexIterator = new \RegexIterator($iterator, $regex);
+		$directory = new RecursiveDirectoryIterator($basePath, FilesystemIterator::SKIP_DOTS | FilesystemIterator::FOLLOW_SYMLINKS | FilesystemIterator::CURRENT_AS_PATHNAME);
+		$iterator = new RecursiveIteratorIterator($directory);
+		$regexIterator = new RegexIterator($iterator, $regex);
 
 		$count = count($phar->buildFromIterator($regexIterator, $basePath));
 
 		yield "Added $count files";
 
-		if($compression !== null){
+		if ($compression !== null) {
 			yield "Checking for compressible files...";
-			foreach($phar as $file => $finfo){
-				/** @var \PharFileInfo $finfo */
-				if($finfo->getSize() > (1024 * 512)){
+			foreach ($phar as $file => $finfo) {
+				/** @var PharFileInfo $finfo */
+				if ($finfo->getSize() > (1024 * 512)) {
 					yield "Compressing " . $finfo->getFilename();
 					$finfo->compress($compression);
 				}
@@ -142,11 +152,13 @@ class VirionCompileScript{
 	}
 
 	/**
-	 * @param array       $strings
+	 * @param array $strings
 	 * @param string|null $delim
 	 * @return array
 	 */
-	private static function preg_quote_array(array $strings, string $delim = null) : array{
-		return array_map(function(string $str) use ($delim) : string{ return preg_quote($str, $delim); }, $strings);
+	private static function preg_quote_array(array $strings, string $delim = null): array {
+		return array_map(function (string $str) use ($delim): string {
+			return preg_quote($str, $delim);
+		}, $strings);
 	}
 }

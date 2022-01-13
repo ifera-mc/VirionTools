@@ -53,6 +53,7 @@ class VirionTools extends PluginBase{
 			mkdir($this->getDataFolder() . "plugins" . DS);
 		}
 
+		$this->saveResource("data" . DS . "cli-autoload.php", true);
 		$this->saveResource("data" . DS . "virion.php", true);
 		$this->saveResource("data" . DS . "virion_stub.php", true);
 	}

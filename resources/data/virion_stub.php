@@ -23,89 +23,76 @@ use const poggit\virion\VIRION_INFECTION_MODE_SYNTAX;
 
 define("VIRION_MODEL_VERSION", 1);
 
-if(PHP_SAPI !== "cli") {
-    echo "virion_stub.php should only be run from CLI, not web servers!\n";
-    exit(1);
+if (PHP_SAPI !== "cli") {
+	echo "virion_stub.php should only be run from CLI, not web servers!\n";
+	exit(1);
 }
-if(class_exists("pocketmine\\Server", false)) {
-    echo "virion_stub.php should be run from CLI directly, not PocketMine servers!\n";
-    exit(1);
+if (PHP_VERSION_ID < 80000) {
+	echo "PHP version 8.0 or higher is required!\n";
+	exit(1);
 }
-if(!Phar::running()) {
-    echo "[!] Fatal: virion_stub.php should not be executed directly. Run it when it is in a phar file.\n";
-    exit(1);
+if (class_exists("pocketmine\\Server", false)) {
+	echo "virion_stub.php should be run from CLI directly, not PocketMine servers!\n";
+	exit(1);
 }
-if(ini_get("phar.readonly")) {
-    echo "[!] Fatal: phar.readonly is on. Please edit the php.ini file, or run this script with 'php -dphar.readonly=0 $argv[0]\n";
-    exit(1);
+if (!Phar::running()) {
+	echo "[!] Fatal: virion_stub.php should not be executed directly. Run it when it is in a phar file.\n";
+	exit(1);
+}
+if (ini_get("phar.readonly")) {
+	echo "[!] Fatal: phar.readonly is on. Please edit the php.ini file, or run this script with 'php -dphar.readonly=0 $argv[0]\n";
+	exit(1);
 }
 
 $cliMap = [];
-if(is_file(Phar::running() . "/cli-map.json")) {
-    $cliMap = json_decode(file_get_contents(Phar::running() . "/cli-map.json"), true);
+if (is_file(Phar::running() . "/cli-map.json")) {
+	$cliMap = json_decode(file_get_contents(Phar::running() . "/cli-map.json"), true);
 }
 
-if(!isset($argv[1])) {
-    echo "[!] Usage: php " . escapeshellarg($argv[0]) . " " . implode("|", array_merge(array_keys($cliMap), ["<plugin phar>"])) . "\n";
-    exit(2);
+if (!isset($argv[1])) {
+	echo "[!] Usage: php " . escapeshellarg($argv[0]) . " " . implode("|", array_merge(array_keys($cliMap), ["<plugin phar>"])) . "\n";
+	exit(2);
 }
 
-if(substr($argv[1], -5) !== ".phar") {
-    if(isset($cliMap[$argv[1]])) {
-        exit (require Phar::running() . "/" . $cliMap[$argv[1]]);
-    }
+if (substr($argv[1], -5) !== ".phar") {
+	if (isset($cliMap[$argv[1]])) {
+		exit (require Phar::running() . "/" . $cliMap[$argv[1]]);
+	}
 }
 
 require Phar::running() . "/virion.php";
-if(!function_exists('poggit\virion\virion_infect')) {
-    echo "[!] Fatal: virion.php does not exist in this phar!\n";
-    exit(1);
+if (!function_exists('poggit\virion\virion_infect')) {
+	echo "[!] Fatal: virion.php does not exist in this phar!\n";
+	exit(1);
 }
 
 $virus = new Phar(Phar::running(false));
 
-if(!is_file($argv[1])) {
-    echo "[!] Fatal: No such file or directory: $argv[1]\n";
-    exit(2);
+if (!is_file($argv[1])) {
+	echo "[!] Fatal: No such file or directory: $argv[1]\n";
+	exit(2);
 }
-if(!is_readable($argv[1])) {
-    echo "[!] Fatal: $argv[1] is not a readable file!\n";
-    exit(2);
+if (!is_readable($argv[1])) {
+	echo "[!] Fatal: $argv[1] is not a readable file!\n";
+	exit(2);
 }
-if(!is_writable($argv[1])) {
-    echo "[!] Fatal: $argv[1] is not a writable file!\n";
-    exit(2);
+if (!is_writable($argv[1])) {
+	echo "[!] Fatal: $argv[1] is not a writable file!\n";
+	exit(2);
 }
 
 $host = new Phar($argv[1]);
 $host->startBuffering();
 
 try {
-	if(!isset($host["plugin.yml"])) {
-		throw new RuntimeException("plugin.yml not found, in the plugin. Aborting...", 2);
-	}
-
-	$pluginYml = yaml_parse(file_get_contents($host["plugin.yml"]));
-
-	$main = $pluginYml["main"];
-	$mainArray = explode("\\", $main);
-
-	array_pop($mainArray);
-
-	$path = implode("\\", $mainArray);
-	$prefix = $path . "\\libs\\";
-
-    $status = poggit\virion\virion_infect($virus, $host, $prefix, VIRION_INFECTION_MODE_SYNTAX, $hostChanges, $viralChanges);
-
-    $host->stopBuffering();
-
-	echo "[*] Shaded $hostChanges references in host and $viralChanges references in virion.\n";
-    if($status !== 0) exit($status);
-} catch(RuntimeException $e) {
-    echo "[!] {$e->getMessage()}\n";
-    exit($e->getCode());
+	$status = poggit\virion\virion_infect($virus, $host, $argv[2] ?? ("_" . bin2hex(random_bytes(10))), VIRION_INFECTION_MODE_SYNTAX, $hostChanges, $viralChanges);
+	echo "Shaded $hostChanges references in host and $viralChanges references in virion.\n";
+	if ($status !== 0) exit($status);
+} catch (RuntimeException $e) {
+	echo "[!] {$e->getMessage()}\n";
+	exit($e->getCode());
 }
-
+$host->stopBuffering();
 
 echo "[*] Infected $argv[1] with " . Phar::running(false) . PHP_EOL;
 exit(0);
