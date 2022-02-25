@@ -31,10 +31,10 @@ declare(strict_types = 1);
  * ------------------------------------------------------------------------
  */
 
-namespace JackMD\VirionTools\commands;
+namespace Ifera\VirionTools\commands;
 
-use JackMD\VirionTools\utils\VirionCompileScript;
-use JackMD\VirionTools\VirionTools;
+use Ifera\VirionTools\utils\VirionCompileScript;
+use Ifera\VirionTools\VirionTools;
 use Phar;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;

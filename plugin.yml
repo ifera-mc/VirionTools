@@ -1,5 +1,6 @@
 name: VirionTools
-main: JackMD\VirionTools\VirionTools
+main: Ifera\VirionTools\VirionTools
+src-namespace-prefix: Ifera\VirionTools
 api: 4.0.0
 version: 4.0.0
 author: Ifera

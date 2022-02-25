@@ -31,10 +31,10 @@ declare(strict_types = 1);
  * ------------------------------------------------------------------------
  */
 
-namespace JackMD\VirionTools\utils;
+namespace Ifera\VirionTools\utils;
 
 use AssertionError;
-use JackMD\VirionTools\VirionTools;
+use Ifera\VirionTools\VirionTools;
 use Phar;
 use pocketmine\command\CommandSender;
 use RecursiveDirectoryIterator;

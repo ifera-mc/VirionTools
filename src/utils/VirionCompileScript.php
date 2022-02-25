@@ -31,7 +31,7 @@ declare(strict_types = 1);
  * ------------------------------------------------------------------------
  */
 
-namespace JackMD\VirionTools\utils;
+namespace Ifera\VirionTools\utils;
 
 use Generator;
 use Phar;

@@ -31,11 +31,11 @@ declare(strict_types = 1);
  * ------------------------------------------------------------------------
  */
 
-namespace JackMD\VirionTools;
+namespace Ifera\VirionTools;
 
-use JackMD\VirionTools\commands\CompileVirionCommand;
-use JackMD\VirionTools\commands\InjectAllCommand;
-use JackMD\VirionTools\commands\InjectVirionCommand;
+use Ifera\VirionTools\commands\CompileVirionCommand;
+use Ifera\VirionTools\commands\InjectAllCommand;
+use Ifera\VirionTools\commands\InjectVirionCommand;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\AssumptionFailedError;
 use Webmozart\PathUtil\Path;
