@@ -10,10 +10,10 @@ declare(strict_types = 1);
  *   \___/|_|_|  |_|\___/|_| |_\_/\___/ \___/|_|___/
  *
  * VirionTools, a VirionTools plugin like DevTools for PocketMine-MP.
- * Copyright (c) 2018 JackMD  < https://github.com/JackMD >
+ * Copyright (c) 2018 Ifera  < https://github.com/Ifera >
  *
- * Discord: JackMD#3717
- * Twitter: JackMTaylor_
+ * Discord: ifera#3717
+ * Twitter: ifera_tr
  *
  * This software is distributed under "GNU General Public License v3.0".
  * This license allows you to use it and/or modify it but you are not at
@@ -37,86 +37,66 @@ use JackMD\VirionTools\commands\CompileVirionCommand;
 use JackMD\VirionTools\commands\InjectAllCommand;
 use JackMD\VirionTools\commands\InjectVirionCommand;
 use pocketmine\plugin\PluginBase;
+use pocketmine\utils\AssumptionFailedError;
+use Webmozart\PathUtil\Path;
+use function dirname;
+use function fclose;
+use function file_exists;
+use function fopen;
+use function is_dir;
+use function mkdir;
+use function stream_copy_to_stream;
+use function trim;
 
-define("DS", DIRECTORY_SEPARATOR);
+class VirionTools extends PluginBase {
 
-class VirionTools extends PluginBase{
-
-	/** @var string */
 	public const PREFIX = "§2[§6Virion§eTools§2]§r ";
 
-	public function onLoad(): void{
-		if(!is_dir($this->getDataFolder() . "builds" . DS)){
-			mkdir($this->getDataFolder() . "builds" . DS);
-		}
-		if(!is_dir($this->getDataFolder() . "plugins" . DS)){
-			mkdir($this->getDataFolder() . "plugins" . DS);
-		}
+	protected function onLoad(): void {
+		if (!is_dir($builds = Path::join($this->getDataFolder(), "builds"))) mkdir($builds);
+		if (!is_dir($plugins = Path::join($this->getDataFolder(), "plugins"))) mkdir($plugins);
 
-		$this->saveResource("data" . DS . "virion.php", true);
-		$this->saveResource("data" . DS . "virion_stub.php", true);
+		$this->saveResource(Path::join("data", "virion.php"), true);
+		$this->saveResource(Path::join("data", "virion_stub.php"), true);
 	}
 
-	public function onEnable(): void{
+	protected function onEnable(): void {
 		$commands = [
 			new CompileVirionCommand($this),
 			new InjectVirionCommand($this),
 			new InjectAllCommand($this)
 		];
 
-		foreach($commands as $command){
+		foreach ($commands as $command) {
 			$this->getServer()->getCommandMap()->register("viriontools", $command);
 		}
 	}
 
-	/**
-	 * @param string $virionName
-	 * @return bool
-	 */
-	public function virionDirectoryExists(string $virionName): bool{
-		return is_dir($this->getServer()->getDataPath() . "virions" . DS . $virionName);
+	public function virionDirectoryExists(string $virionName): bool {
+		return is_dir(Path::join($this->getServer()->getDataPath(), "virions", $virionName));
 	}
 
-	/**
-	 * @param string $virionName
-	 * @return bool
-	 */
-	public function virionPharExists(string $virionName): bool{
-		return file_exists($this->getDataFolder() . "builds" . DS . $virionName);
+	public function virionPharExists(string $virionName): bool {
+		return file_exists(Path::join($this->getDataFolder(), "builds", $virionName));
 	}
 
-	/**
-	 * @param string $pluginName
-	 * @return bool
-	 */
-	public function pluginPharExists(string $pluginName): bool{
-		return file_exists($this->getDataFolder() . "plugins" . DS . $pluginName);
+	public function pluginPharExists(string $pluginName): bool {
+		return file_exists(Path::join($this->getDataFolder(), "plugins", $pluginName));
 	}
 
-	/**
-	 * @param string $virion
-	 * @param string $filename
-	 * @return bool
-	 */
-	public function addFile(string $virion, string $filename): bool{
-		$filename = "data" . DS . $filename;
+	public function addFile(string $virion, string $filename, bool $replace = false): bool {
+		if (trim($filename) === "") return false;
+		if (($resource = $this->getResource(Path::join("data", $filename))) === null) return false;
 
-		if(trim($filename) === ""){
-			return false;
-		}
+		$out = Path::join($this->getServer()->getDataPath(), "virions", $virion, $filename);
 
-		if(($resource = $this->getResource($filename)) === null){
-			return false;
-		}
+		if (!file_exists(dirname($out))) mkdir(dirname($out), 0755, true);
+		if (file_exists($out) && !$replace) return false;
 
-		$out = $this->getServer()->getDataPath() . "virions" . DS . $virion . DS . str_replace("data" . DS, "", $filename);
+		$fp = fopen($out, "wb");
+		if ($fp === false) throw new AssumptionFailedError("fopen() should not fail with wb flags");
 
-		if(!file_exists(dirname($out))){
-			mkdir(dirname($out), 0755, true);
-		}
-
-		$ret = stream_copy_to_stream($resource, $fp = fopen($out, "wb")) > 0;
-
+		$ret = stream_copy_to_stream($resource, $fp) > 0;
 		fclose($fp);
 		fclose($resource);
 

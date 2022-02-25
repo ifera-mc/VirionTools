@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpElementIsNotAvailableInCurrentPhpVersionInspection */
 
 /*
  * Poggit
@@ -39,20 +39,19 @@ use function token_get_all;
 use function yaml_parse;
 use const DIRECTORY_SEPARATOR;
 use const PHP_EOL;
-use const T_CONST;
-use const T_FUNCTION;
 use const T_NAMESPACE;
-use const T_NS_SEPARATOR;
 use const T_STRING;
-use const T_USE;
 use const T_WHITESPACE;
-const VIRION_BUILDER_VERSION = "1.2";
+use const T_NAME_FULLY_QUALIFIED;
+use const T_NAME_QUALIFIED;
+
+const VIRION_BUILDER_VERSION = "1.4";
 
 const VIRION_INFECTION_MODE_SYNTAX = 0;
 const VIRION_INFECTION_MODE_SINGLE = 1;
 const VIRION_INFECTION_MODE_DOUBLE = 2;
 
-echo "[*] Using virion builder: version " . VIRION_BUILDER_VERSION, PHP_EOL;
+echo "Using virion builder: version " . VIRION_BUILDER_VERSION, PHP_EOL;
 
 function virion_infect(Phar $virus, Phar $host, string $prefix = "", int $mode = VIRION_INFECTION_MODE_SYNTAX, &$hostChanges = 0, &$viralChanges = 0): int {
     if(!isset($virus["virion.yml"])) {
@@ -78,7 +77,7 @@ function virion_infect(Phar $virus, Phar $host, string $prefix = "", int $mode =
     $antibody = $prefix . $antigen;
     $infectionLog[$antibody] = $virionYml;
 
-    echo "[*] Using antibody $antibody for virion $genus ({$antigen})\n";
+    echo "Using antibody $antibody for virion $genus ({$antigen})\n";
 
     $hostPharPath = "phar://" . str_replace(DIRECTORY_SEPARATOR, "/", $host->getPath());
     $hostChanges = 0;
@@ -87,7 +86,7 @@ function virion_infect(Phar $virus, Phar $host, string $prefix = "", int $mode =
         if($chromosome->getExtension() !== "php") continue;
 
         $rel = cut_prefix($name, $hostPharPath);
-        $data = change_dna($original = file_get_contents($name), $antigen, $antibody, $mode, $hostChanges);
+        $data = change_dna(file_get_contents($name), $antigen, $antibody, $mode, $hostChanges);
         if($data !== "") $host[$rel] = $data;
     }
 
@@ -104,7 +103,7 @@ function virion_infect(Phar $virus, Phar $host, string $prefix = "", int $mode =
             $host[$rel] = file_get_contents($name);
         } elseif(strpos($rel, "src/") === 0) {
             if(strpos($rel, $restriction) !== 0) {
-                echo "[!] Warning: file $rel in virion is not under the antigen $antigen ($restriction)\n";
+                echo "Warning: file $rel in virion is not under the antigen $antigen ($restriction)\n";
                 $newRel = $rel;
             } else {
                 $newRel = $ligase . cut_prefix($rel, $restriction);
@@ -133,32 +132,37 @@ function change_dna(string $chromosome, string $antigen, string $antibody, $mode
                 if(!is_array($token) or $token[0] !== T_WHITESPACE) {
                     /** @noinspection IssetArgumentExistenceInspection */
                     list($id, $str, $line) = is_array($token) ? $token : [-1, $token, $line ?? 1];
-                    /** @noinspection IssetArgumentExistenceInspection */
-                    if(isset($init, $current, $prefixToken)) {
-                        if($current === "" && $prefixToken === T_USE and $id === T_FUNCTION || $id === T_CONST) {
-                        } elseif($id === T_NS_SEPARATOR || $id === T_STRING) {
-                            $current .= $str;
-                        } elseif(!($current === "" && $prefixToken === T_USE and $id === T_FUNCTION || $id === T_CONST)) {
-                            // end of symbol reference
-                            if(strpos($current, $antigen) === 0) { // case-sensitive!
-                                $new = $antibody . substr($current, strlen($antigen));
-                                for($o = $init + 1; $o < $offset; ++$o) {
-                                    if($tokens[$o][0] === T_NS_SEPARATOR || $tokens[$o][0] === T_STRING) {
-                                        $tokens[$o][1] = $new;
-                                        $new = ""; // will write nothing after the first time
-                                    }
-                                }
-                                ++$count;
-                            } elseif(stripos($current, $antigen) === 0) {
-                                echo "\x1b[38;5;227m\n[WARNING] Not replacing FQN $current case-insensitively.\n\x1b[m";
-                            }
-                            unset($init, $current, $prefixToken);
+                    //namespace test; is a T_STRING whereas namespace test\test; is not.
+                    if(isset($init, $prefixToken) and $id === T_STRING){
+                        if($str === $antigen) { // case-sensitive!
+                            $tokens[$offset][1] = $antibody . substr($str, strlen($antigen));
+                            ++$count;
+                        } elseif(stripos($str, $antigen) === 0) {
+                            echo "\x1b[38;5;227m\n[WARNING] Not replacing FQN $str case-insensitively.\n\x1b[m";
                         }
+                        unset($init, $prefixToken);
                     } else {
-                        if($id === T_NS_SEPARATOR || $id === T_NAMESPACE || $id === T_USE) {
+                        if($id === T_NAMESPACE) {
                             $init = $offset;
-                            $current = "";
                             $prefixToken = $id;
+                        } elseif($id === T_NAME_QUALIFIED) {
+                            if(($str[strlen($antigen)]??"\\") === "\\") {
+                                if(strpos($str, $antigen) === 0) { // case-sensitive!
+                                    $tokens[$offset][1] = $antibody . substr($str, strlen($antigen));
+                                    ++$count;
+                                } elseif(stripos($str, $antigen) === 0) {
+                                    echo "\x1b[38;5;227m\n[WARNING] Not replacing FQN $str case-insensitively.\n\x1b[m";
+                                }
+                            }
+                            unset($init, $prefixToken);
+                        } elseif($id === T_NAME_FULLY_QUALIFIED){
+                            if(strpos($str, "\\" . $antigen . "\\") === 0) { // case-sensitive!
+                                $tokens[$offset][1] = "\\" . $antibody . substr($str, strlen($antigen)+1);
+                                ++$count;
+                            } elseif(stripos($str, "\\" . $antigen . "\\") === 0) {
+                                echo "\x1b[38;5;227m\n[WARNING] Not replacing FQN $str case-insensitively.\n\x1b[m";
+                            }
+                            unset($init, $prefixToken);
                         }
                     }
                 }

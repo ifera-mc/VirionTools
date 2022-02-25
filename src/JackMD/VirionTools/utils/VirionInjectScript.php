@@ -10,10 +10,10 @@ declare(strict_types = 1);
  *   \___/|_|_|  |_|\___/|_| |_\_/\___/ \___/|_|___/
  *
  * VirionTools, a VirionTools plugin like DevTools for PocketMine-MP.
- * Copyright (c) 2018 JackMD  < https://github.com/JackMD >
+ * Copyright (c) 2018 Ifera  < https://github.com/Ifera >
  *
- * Discord: JackMD#3717
- * Twitter: JackMTaylor_
+ * Discord: ifera#3717
+ * Twitter: ifera_tr
  *
  * This software is distributed under "GNU General Public License v3.0".
  * This license allows you to use it and/or modify it but you are not at
@@ -39,9 +39,30 @@ use Phar;
 use pocketmine\command\CommandSender;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use RuntimeException;
+use function array_pop;
+use function explode;
+use function file_get_contents;
+use function implode;
+use function is_array;
+use function json_decode;
+use function json_encode;
+use function str_replace;
+use function stripos;
+use function strlen;
+use function strpos;
+use function substr;
+use function token_get_all;
+use function yaml_parse;
+use const DIRECTORY_SEPARATOR;
+use const T_NAME_FULLY_QUALIFIED;
+use const T_NAME_QUALIFIED;
+use const T_NAMESPACE;
+use const T_STRING;
+use const T_WHITESPACE;
 
-class VirionInjectScript{
+class VirionInjectScript {
+
+	public const VIRION_BUILDER_VERSION = "1.4"; // just to keep track with poggit's virion.php
 
 	/*
 	 * Note:
@@ -52,47 +73,35 @@ class VirionInjectScript{
 	 * Kudos to the creator/maintainer of those scripts.
 	 */
 
-	/**
-	 * @param CommandSender $sender
-	 * @param string        $virusName
-	 * @param Phar          $virus
-	 * @param string        $hostName
-	 * @param Phar          $host
-	 * @return bool
-	 */
-	public static function virion_infect(CommandSender $sender, string $virusName, Phar $virus, string $hostName, Phar $host): bool{
+	public static function virion_infect(CommandSender $sender, string $virusName, Phar $virus, string $hostName, Phar $host): bool {
 		//$virus->startBuffering();
 		$host->startBuffering();
 
 		/* Check to make sure virion.yml exists in the virion */
-		if(!isset($virus["virion.yml"])){
+		if (!isset($virus["virion.yml"])) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cvirion.yml not found in §6$virusName");
-
 			return false;
 		}
 
 		$virusPath = "phar://" . str_replace(DIRECTORY_SEPARATOR, "/", $virus->getPath()) . "/";
 		$virionYml = yaml_parse(file_get_contents($virusPath . "virion.yml"));
 
-		if(!is_array($virionYml)){
+		if (!is_array($virionYml)) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cCorrupted virion.yml, could not activate virion §6$virusName");
-
 			return false;
 		}
 
 		/* Check to make sure plugin.yml exists in the plugin */
-		if(!isset($host["plugin.yml"])){
+		if (!isset($host["plugin.yml"])) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cplugin.yml not found in §6$hostName");
-
 			return false;
 		}
 
 		$hostPath = "phar://" . str_replace(DIRECTORY_SEPARATOR, "/", $host->getPath()) . "/";
 		$pluginYml = yaml_parse(file_get_contents($hostPath . "plugin.yml"));
 
-		if(!is_array($pluginYml)){
+		if (!is_array($pluginYml)) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cCorrupted plugin.yml found in plugin §6$hostName");
-
 			return false;
 		}
 
@@ -104,10 +113,9 @@ class VirionInjectScript{
 		$genus = $virionYml["name"];
 		$antigen = $virionYml["antigen"];
 
-		foreach($infectionLog as $old){
-			if($old["antigen"] === $antigen){
+		foreach ($infectionLog as $old) {
+			if ($old["antigen"] === $antigen) {
 				$sender->sendMessage(VirionTools::PREFIX . "§cPlugin §6$hostName §cis already infected with §d$virusName");
-
 				return false;
 			}
 		}
@@ -118,50 +126,38 @@ class VirionInjectScript{
 		$sender->sendMessage(VirionTools::PREFIX . "§aUsing antibody §2$antibody §afor virion §d$genus §2({$antigen})");
 
 		$hostPharPath = "phar://" . str_replace(DIRECTORY_SEPARATOR, "/", $host->getPath());
-
 		$hostChanges = 0;
-		foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($hostPharPath)) as $name => $chromosome){
-			if($chromosome->isDir()){
-				continue;
-			}
 
-			if($chromosome->getExtension() !== "php"){
-				continue;
-			}
+		foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($hostPharPath)) as $name => $chromosome) {
+			if ($chromosome->isDir()) continue;
+			if ($chromosome->getExtension() !== "php") continue;
 
 			$rel = self::cut_prefix($name, $hostPharPath);
-			$data = self::change_dna($original = file_get_contents($name), $antigen, $antibody, $hostChanges);
+			$data = self::change_dna(file_get_contents($name), $antigen, $antibody, $hostChanges);
 
-			if($data !== ""){
-				$host[$rel] = $data;
-			}
+			if ($data !== "") $host[$rel] = $data;
 		}
 
 		$restriction = "src/" . str_replace("\\", "/", $antigen) . "/";
 		$ligase = "src/" . str_replace("\\", "/", $antibody) . "/";
 
 		$viralChanges = 0;
-
-		foreach(new RecursiveIteratorIterator($virus) as $name => $genome){
-			if($genome->isDir()){
-				continue;
-			}
+		foreach (new RecursiveIteratorIterator($virus) as $name => $genome) {
+			if ($genome->isDir()) continue;
 
 			$rel = self::cut_prefix($name, "phar://" . str_replace(DIRECTORY_SEPARATOR, "/", $virus->getPath()) . "/");
 
-			if(strpos($rel, "resources/") === 0){
+			if (strpos($rel, "resources/") === 0) {
 				$host[$rel] = file_get_contents($name);
-			}elseif(strpos($rel, "src/") === 0){
-				if(strpos($rel, $restriction) !== 0){
+			} elseif (strpos($rel, "src/") === 0) {
+				if (strpos($rel, $restriction) !== 0) {
 					$sender->sendMessage(VirionTools::PREFIX . "§cWarning: File $rel in virion is not under the antigen $antigen ($restriction)");
-
 					$newRel = $rel;
-				}else{
+				} else {
 					$newRel = $ligase . self::cut_prefix($rel, $restriction);
 				}
 
 				$data = self::change_dna(file_get_contents($name), $antigen, $antibody, $viralChanges);
-
 				$host[$newRel] = $data;
 			}
 		}
@@ -176,92 +172,65 @@ class VirionInjectScript{
 		return true;
 	}
 
-	/**
-	 * @param array $pluginYml
-	 * @return string
-	 */
-	private static function getPrefix(array $pluginYml): string{
+	private static function getPrefix(array $pluginYml): string {
 		$main = $pluginYml["main"];
 		$mainArray = explode("\\", $main);
-
 		array_pop($mainArray);
-
 		$path = implode("\\", $mainArray);
-		$prefix = $path . "\\libs\\";
-
-		return $prefix;
+		return $path . "\\libs\\";
 	}
 
-	/**
-	 * @param string $string
-	 * @param string $prefix
-	 * @return string
-	 */
-	private static function cut_prefix(string $string, string $prefix): string{
-		if(strpos($string, $prefix) !== 0){
-			throw new AssertionError("\$string does not start with \$prefix:\n$string\n$prefix");
-		}
-
+	private static function cut_prefix(string $string, string $prefix): string {
+		if (strpos($string, $prefix) !== 0) throw new AssertionError("\$string does not start with \$prefix:\n$string\n$prefix");
 		return substr($string, strlen($prefix));
 	}
 
-	/**
-	 * @param string $chromosome
-	 * @param string $antigen
-	 * @param string $antibody
-	 * @param int    $count
-	 * @return string
-	 */
-	private static function change_dna(string $chromosome, string $antigen, string $antibody, &$count = 0): string{
+	private static function change_dna(string $chromosome, string $antigen, string $antibody, &$count = 0): string {
 		$tokens = token_get_all($chromosome);
 		$tokens[] = ""; // should not be valid though
-
-		foreach($tokens as $offset => $token){
-			if(!is_array($token) or $token[0] !== T_WHITESPACE){
-				list($id, $str, $line) = is_array($token) ? $token : [
-					-1,
-					$token,
-					$line ?? 1
-				];
-
-				if(isset($init, $current, $prefixToken)){
-					if($current === "" && $prefixToken === T_USE and $id === T_FUNCTION || $id === T_CONST){
-					}elseif($id === T_NS_SEPARATOR || $id === T_STRING){
-						$current .= $str;
-					}elseif(!($current === "" && $prefixToken === T_USE and $id === T_FUNCTION || $id === T_CONST)){
-						// end of symbol reference
-						if(strpos($current, $antigen) === 0){ // case-sensitive!
-							$new = $antibody . substr($current, strlen($antigen));
-
-							for($o = $init + 1; $o < $offset; ++$o){
-								if($tokens[$o][0] === T_NS_SEPARATOR || $tokens[$o][0] === T_STRING){
-									$tokens[$o][1] = $new;
-									$new = ""; // will write nothing after the first time
-								}
-							}
-
-							++$count;
-						}elseif(stripos($current, $antigen) === 0){
-							throw new RuntimeException("§c[WARNING] Not replacing FQN §2$current §ccase-insensitively.");
-						}
-
-						unset($init, $current, $prefixToken);
+		foreach ($tokens as $offset => $token) {
+			if (!is_array($token) or $token[0] !== T_WHITESPACE) {
+				/** @noinspection IssetArgumentExistenceInspection */
+				[$id, $str, $line] = is_array($token) ? $token : [-1, $token, $line ?? 1];
+				//namespace test; is a T_STRING whereas namespace test\test; is not.
+				if (isset($init, $prefixToken) and $id === T_STRING) {
+					if ($str === $antigen) { // case-sensitive!
+						$tokens[$offset][1] = $antibody . substr($str, strlen($antigen));
+						++$count;
+					} elseif (stripos($str, $antigen) === 0) {
+						echo "\x1b[38;5;227m\n[WARNING] Not replacing FQN $str case-insensitively.\n\x1b[m";
 					}
-				}else{
-					if($id === T_NS_SEPARATOR || $id === T_NAMESPACE || $id === T_USE){
+					unset($init, $prefixToken);
+				} else {
+					if ($id === T_NAMESPACE) {
 						$init = $offset;
-						$current = "";
 						$prefixToken = $id;
+					} elseif ($id === T_NAME_QUALIFIED) {
+						if (($str[strlen($antigen)] ?? "\\") === "\\") {
+							if (strpos($str, $antigen) === 0) { // case-sensitive!
+								$tokens[$offset][1] = $antibody . substr($str, strlen($antigen));
+								++$count;
+							} elseif (stripos($str, $antigen) === 0) {
+								echo "\x1b[38;5;227m\n[WARNING] Not replacing FQN $str case-insensitively.\n\x1b[m";
+							}
+						}
+						unset($init, $prefixToken);
+					} elseif ($id === T_NAME_FULLY_QUALIFIED) {
+						if (strpos($str, "\\" . $antigen . "\\") === 0) { // case-sensitive!
+							$tokens[$offset][1] = "\\" . $antibody . substr($str, strlen($antigen) + 1);
+							++$count;
+						} elseif (stripos($str, "\\" . $antigen . "\\") === 0) {
+							echo "\x1b[38;5;227m\n[WARNING] Not replacing FQN $str case-insensitively.\n\x1b[m";
+						}
+						unset($init, $prefixToken);
 					}
 				}
 			}
 		}
-
 		$ret = "";
-		foreach($tokens as $token){
+		foreach ($tokens as $token) {
 			$ret .= is_array($token) ? $token[1] : $token;
 		}
-
 		return $ret;
 	}
 }

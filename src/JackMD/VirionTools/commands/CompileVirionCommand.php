@@ -10,10 +10,10 @@ declare(strict_types = 1);
  *   \___/|_|_|  |_|\___/|_| |_\_/\___/ \___/|_|___/
  *
  * VirionTools, a VirionTools plugin like DevTools for PocketMine-MP.
- * Copyright (c) 2018 JackMD  < https://github.com/JackMD >
+ * Copyright (c) 2018 Ifera  < https://github.com/Ifera >
  *
- * Discord: JackMD#3717
- * Twitter: JackMTaylor_
+ * Discord: ifera#3717
+ * Twitter: ifera_tr
  *
  * This software is distributed under "GNU General Public License v3.0".
  * This license allows you to use it and/or modify it but you are not at
@@ -35,139 +35,116 @@ namespace JackMD\VirionTools\commands;
 
 use JackMD\VirionTools\utils\VirionCompileScript;
 use JackMD\VirionTools\VirionTools;
+use Phar;
+use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
-use pocketmine\command\PluginCommand;
+use pocketmine\plugin\PluginOwned;
+use Webmozart\PathUtil\Path;
+use function addslashes;
+use function file_exists;
+use function ini_get;
+use function is_array;
+use function php_ini_loaded_file;
+use function realpath;
+use function sprintf;
+use function str_replace;
+use function unlink;
+use function yaml_parse_file;
 
-class CompileVirionCommand extends PluginCommand{
+class CompileVirionCommand extends Command implements PluginOwned {
 
-	/** @var VirionTools */
-	private $plugin;
-
-	/**
-	 * CompileVirionCommand constructor.
-	 *
-	 * @param VirionTools $plugin
-	 */
-	public function __construct(VirionTools $plugin){
-		parent::__construct("compilevirion", $plugin);
-
-		$this->setDescription("Compile a virion.phar from a virion.");
-		$this->setUsage("/cv [string:virion]");
-		$this->setPermission("vt.cmd.cv");
-		$this->setAliases(
-			[
-				"cv",
-				"bv",
-				"buildvirion"
-			]
+	public function __construct(private VirionTools $plugin) {
+		parent::__construct(
+			"compilevirion",
+			"Compile a virion.phar from a virion",
+			"/cv [string:virion]",
+			["cv", "bv", "buildvirion"]
 		);
 
-		$this->plugin = $plugin;
+		$this->setPermission("vt.cmd.cv");
 	}
 
-	/**
-	 * @param CommandSender $sender
-	 * @param string        $commandLabel
-	 * @param array         $args
-	 */
-	public function execute(CommandSender $sender, string $commandLabel, array $args): void{
-		if(!$this->testPermission($sender)){
+	public function execute(CommandSender $sender, string $commandLabel, array $args): void {
+		if (!$this->testPermission($sender)) return;
+
+		if (ini_get('phar.readonly') !== '0') {
+			$sender->sendMessage(VirionTools::PREFIX . "§cThis command requires §4\"phar.readonly\" §cto be set to 0. Set it in §4" . php_ini_loaded_file() . " §cand restart the server.");
 			return;
 		}
 
-		if(!isset($args[0])){
+		if (!isset($args[0])) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cUsage: §7/cv [string:virion]");
-
 			return;
 		}
 
 		$virion = (string) $args[0];
 
-		if(!$this->plugin->virionDirectoryExists($virion)){
+		if (!$this->plugin->virionDirectoryExists($virion)) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cVirion with the name §d" . $virion . " §cwas not found.");
 			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the virion you want to build is located in the virions folder and the virions folder should be located in the folder where PocketMine-MP.phar is located.");
-
 			return;
 		}
 
-		$virionDirectory = $this->plugin->getServer()->getDataPath() . "virions" . DIRECTORY_SEPARATOR;
+		$pharPath = Path::join($this->plugin->getDataFolder(), "builds", $virion . ".phar");
+		$basePath = Path::join($this->plugin->getServer()->getDataPath(), "virions", $virion);
 
-		$pharPath = $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR . $virion . ".phar";
-		$basePath = $virionDirectory . $virion . DIRECTORY_SEPARATOR;
-
-		if(!file_exists($basePath . "virion.yml")){
+		if (!file_exists($virionYmlPath = Path::join($basePath, "virion.yml"))) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cvirion.yml not found in virion §6$virion");
-
 			return;
 		}
 
-		$virionYml = yaml_parse(file_get_contents($basePath . "virion.yml"));
+		$virionYml = yaml_parse_file($virionYmlPath);
 
-		if(!is_array($virionYml)){
+		if (!is_array($virionYml)) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cCorrupted virion.yml, could not use virion §6$virion");
-
 			return;
 		}
 
-		if(!isset($virionYml["name"]) || (!isset($virionYml["version"]))){
-			$sender->sendMessage(VirionTools::PREFIX . "§cEither §4name §cor §4version §ckey is missing in §4virion.yml §cof virion §6$virion");
+		$checks = ["name", "version"];
 
-			return;
+		foreach ($checks as $check) {
+			if (!isset($virionYml[$check])) {
+				$sender->sendMessage(VirionTools::PREFIX . "§cKey §4$check §cis missing in §4virion.yml §cof virion §6$virion");
+				return;
+			}
 		}
 
-		$this->plugin->addFile($virion, "virion.php");
-		$this->plugin->addFile($virion, "virion_stub.php");
+		$this->plugin->addFile($virion, "virion.php", true);
+		$this->plugin->addFile($virion, "virion_stub.php", true);
 
-		$stub = $this->getStub($basePath);
-		$metadata = VirionCompileScript::generateVirionMetadataFromYml($basePath . "virion.yml");
-
-		$this->buildVirion($sender, $pharPath, $basePath, [], $metadata, $stub, \Phar::SHA1);
+		$this->buildVirion(
+			$sender,
+			$pharPath,
+			$basePath,
+			[],
+			VirionCompileScript::generateVirionMetadataFromYml(Path::join($basePath, "virion.yml")),
+			$this->getStub($basePath),
+			Phar::SHA1
+		);
 
 		$sender->sendMessage(VirionTools::PREFIX . "§aPhar virion has been created on §2" . $pharPath);
+
+		unlink(Path::join($basePath, "virion.php"));
+		unlink(Path::join($basePath, "virion_stub.php"));
 	}
 
-	/**
-	 * @param string $basePath
-	 * @return string
-	 */
-	private function getStub(string $basePath): string{
-		$entry = $basePath . VirionCompileScript::VIRION_STUB_FILE_NAME;
+	public function getOwningPlugin(): VirionTools {
+		return $this->plugin;
+	}
+
+	private function getStub(string $basePath): string {
+		$entry = Path::join($basePath, VirionCompileScript::VIRION_STUB_FILE_NAME);
 		$realEntry = realpath($entry);
 
-		if($realEntry === false){
-			throw new \RuntimeException("Entry point not found");
-		}
+		if ($realEntry === false) throw new \RuntimeException("Entry point not found");
 
-		$realEntry = addslashes(str_replace(
-			[
-				$basePath,
-				"\\"
-			],
+		$realEntry = addslashes(str_replace([$basePath, "\\"], ["", "/"], $realEntry));
 
-			[
-				"",
-				"/"
-			],
-
-			$realEntry
-		));
-
-		$stub = sprintf(VirionCompileScript::VIRION_STUB, $realEntry);
-
-		return $stub;
+		return sprintf(VirionCompileScript::VIRION_STUB, $realEntry);
 	}
 
-	/**
-	 * @param CommandSender $sender
-	 * @param string        $pharPath
-	 * @param string        $basePath
-	 * @param array         $includedPaths
-	 * @param array         $metadata
-	 * @param string        $stub
-	 * @param int           $signatureAlgo
-	 */
-	private function buildVirion(CommandSender $sender, string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = \Phar::SHA1): void{
-		foreach(VirionCompileScript::buildVirion($pharPath, $basePath, $includedPaths, $metadata, $stub, $signatureAlgo, $signatureAlgo) as $line){
+	private function buildVirion(CommandSender $sender, string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = Phar::SHA1): void {
+		foreach (VirionCompileScript::buildVirion($pharPath, $basePath, $includedPaths, $metadata, $stub, $signatureAlgo, $signatureAlgo) as $line) {
 			$sender->sendMessage(VirionTools::PREFIX . "§a" . $line);
 		}
 	}

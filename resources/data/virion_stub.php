@@ -27,6 +27,10 @@ if(PHP_SAPI !== "cli") {
     echo "virion_stub.php should only be run from CLI, not web servers!\n";
     exit(1);
 }
+if(PHP_VERSION_ID < 80000) {
+    echo "PHP version 8.0 or higher is required!\n";
+    exit(1);
+}
 if(class_exists("pocketmine\\Server", false)) {
     echo "virion_stub.php should be run from CLI directly, not PocketMine servers!\n";
     exit(1);
@@ -86,26 +90,21 @@ try {
 	}
 
 	$pluginYml = yaml_parse(file_get_contents($host["plugin.yml"]));
-
 	$main = $pluginYml["main"];
 	$mainArray = explode("\\", $main);
-
 	array_pop($mainArray);
-
 	$path = implode("\\", $mainArray);
 	$prefix = $path . "\\libs\\";
 
-    $status = poggit\virion\virion_infect($virus, $host, $prefix, VIRION_INFECTION_MODE_SYNTAX, $hostChanges, $viralChanges);
+	$status = poggit\virion\virion_infect($virus, $host, $argv[2] ?? $prefix, VIRION_INFECTION_MODE_SYNTAX, $hostChanges, $viralChanges);
 
-    $host->stopBuffering();
-
-	echo "[*] Shaded $hostChanges references in host and $viralChanges references in virion.\n";
+    echo "Shaded $hostChanges references in host and $viralChanges references in virion.\n";
     if($status !== 0) exit($status);
 } catch(RuntimeException $e) {
     echo "[!] {$e->getMessage()}\n";
     exit($e->getCode());
 }
-
+$host->stopBuffering();
 
 echo "[*] Infected $argv[1] with " . Phar::running(false) . PHP_EOL;
 exit(0);

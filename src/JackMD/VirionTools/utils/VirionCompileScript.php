@@ -10,10 +10,10 @@ declare(strict_types = 1);
  *   \___/|_|_|  |_|\___/|_| |_\_/\___/ \___/|_|___/
  *
  * VirionTools, a VirionTools plugin like DevTools for PocketMine-MP.
- * Copyright (c) 2018 JackMD  < https://github.com/JackMD >
+ * Copyright (c) 2018 Ifera  < https://github.com/Ifera >
  *
- * Discord: JackMD#3717
- * Twitter: JackMTaylor_
+ * Discord: ifera#3717
+ * Twitter: ifera_tr
  *
  * This software is distributed under "GNU General Public License v3.0".
  * This license allows you to use it and/or modify it but you are not at
@@ -33,9 +33,25 @@ declare(strict_types = 1);
 
 namespace JackMD\VirionTools\utils;
 
+use Generator;
 use Phar;
+use function array_map;
+use function count;
+use function file_exists;
+use function implode;
+use function microtime;
+use function preg_quote;
+use function realpath;
+use function round;
+use function rtrim;
+use function sprintf;
+use function str_replace;
+use function time;
+use function unlink;
+use function yaml_parse_file;
+use const DIRECTORY_SEPARATOR;
 
-class VirionCompileScript{
+class VirionCompileScript {
 
 	/*
 	 * Note:
@@ -45,51 +61,39 @@ class VirionCompileScript{
 	 * Kudos to the creator/maintainer of that plugin.
 	 */
 
-	/** @var string */
-	public const VIRION_STUB = '<?php require("phar://" . __FILE__ . "/%s"); __HALT_COMPILER();';
-
-	/** @var string */
+	public const VIRION_STUB           = '<?php require("phar://" . __FILE__ . "/%s"); __HALT_COMPILER();';
 	public const VIRION_STUB_FILE_NAME = 'virion_stub.php';
 
-	/**
-	 * @param string $virionYmlPath
-	 * @return array|null
-	 */
-	public static function generateVirionMetadataFromYml(string $virionYmlPath): ?array{
-		if(!file_exists($virionYmlPath)){
-			throw new \RuntimeException("virion.yml not found. Aborting...");
-		}
+	public static function generateVirionMetadataFromYml(string $virionYmlPath): ?array {
+		if (!file_exists($virionYmlPath)) throw new \RuntimeException("virion.yml not found. Aborting...");
 
-		$virionYml = yaml_parse_file($virionYmlPath);
+		$data = yaml_parse_file($virionYmlPath);
 
 		return [
 			"compiler"     => "VirionTools",
-			"name"         => $virionYml["name"],
-			"version"      => $virionYml["version"],
-			"antigen"      => $virionYml["antigen"],
-			"api"          => $virionYml["api"],
-			"php"          => $virionYml["php"] ?? [],
-			"description"  => $virionYml["description"] ?? "",
-			"authors"      => $virionYml["authors"] ?? [],
+			"name"         => $data["name"],
+			"version"      => $data["version"],
+			"antigen"      => $data["antigen"],
+			"api"          => $data["api"],
+			"php"          => $data["php"] ?? [],
+			"description"  => $data["description"] ?? "",
+			"authors"      => $data["authors"] ?? [],
 			"creationDate" => time()
 		];
 	}
 
-	/**
-	 * @param string   $pharPath
-	 * @param string   $basePath
-	 * @param array    $includedPaths
-	 * @param array    $metadata
-	 * @param string   $stub
-	 * @param int      $signatureAlgo
-	 * @param int|null $compression
-	 * @return \Generator
-	 */
-	public static function buildVirion(string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = Phar::SHA1, ?int $compression = null){
-		if(file_exists($pharPath)){
+	public static function buildVirion(string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = Phar::SHA1, ?int $compression = null): Generator {
+		$basePath = rtrim(str_replace("/", DIRECTORY_SEPARATOR, $basePath), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
+		if (file_exists($pharPath)) {
 			yield "Phar file already exists, overwriting...";
 
-			Phar::unlinkArchive($pharPath);
+			try {
+				Phar::unlinkArchive($pharPath);
+			}
+			catch (\PharException) {
+				unlink($pharPath);
+			}
 		}
 
 		yield "Adding files...";
@@ -101,14 +105,17 @@ class VirionCompileScript{
 		$phar->setSignatureAlgorithm($signatureAlgo);
 		$phar->startBuffering();
 
-		$excludedSubstrings = self::preg_quote_array([realpath($pharPath)], '/');
+		$excludedSubstrings = self::preg_quote_array([
+			realpath($pharPath)
+		], '/');
+
 		$folderPatterns = self::preg_quote_array([
 			DIRECTORY_SEPARATOR . 'tests' . DIRECTORY_SEPARATOR,
 			DIRECTORY_SEPARATOR . '.'
 		], '/');
-		$basePattern = preg_quote(rtrim($basePath, DIRECTORY_SEPARATOR), '/');
 
-		foreach($folderPatterns as $p){
+		$basePattern = preg_quote(rtrim($basePath, DIRECTORY_SEPARATOR), '/');
+		foreach ($folderPatterns as $p) {
 			$excludedSubstrings[] = $basePattern . '.*' . $p;
 		}
 
@@ -123,14 +130,13 @@ class VirionCompileScript{
 		$regexIterator = new \RegexIterator($iterator, $regex);
 
 		$count = count($phar->buildFromIterator($regexIterator, $basePath));
-
 		yield "Added $count files";
 
-		if($compression !== null){
+		if ($compression !== null) {
 			yield "Checking for compressible files...";
-			foreach($phar as $file => $finfo){
+			foreach ($phar as $finfo) {
 				/** @var \PharFileInfo $finfo */
-				if($finfo->getSize() > (1024 * 512)){
+				if ($finfo->getSize() > (1024 * 512)) {
 					yield "Compressing " . $finfo->getFilename();
 					$finfo->compress($compression);
 				}
@@ -141,12 +147,7 @@ class VirionCompileScript{
 		yield "Done in " . round(microtime(true) - $start, 3) . "s";
 	}
 
-	/**
-	 * @param array       $strings
-	 * @param string|null $delim
-	 * @return array
-	 */
-	private static function preg_quote_array(array $strings, string $delim = null) : array{
-		return array_map(function(string $str) use ($delim) : string{ return preg_quote($str, $delim); }, $strings);
+	private static function preg_quote_array(array $strings, string $delim = null): array {
+		return array_map(function(string $str) use ($delim): string { return preg_quote($str, $delim); }, $strings);
 	}
 }

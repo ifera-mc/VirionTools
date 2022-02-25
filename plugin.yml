@@ -1,8 +1,8 @@
 name: VirionTools
 main: JackMD\VirionTools\VirionTools
-api: [3.0.0]
-version: 3.2.0
-author: JackMD
+api: 4.0.0
+version: 4.0.0
+author: Ifera
 
 permissions:
   vt.cmd.iv:

@@ -10,10 +10,10 @@ declare(strict_types = 1);
  *   \___/|_|_|  |_|\___/|_| |_\_/\___/ \___/|_|___/
  *
  * VirionTools, a VirionTools plugin like DevTools for PocketMine-MP.
- * Copyright (c) 2018 JackMD  < https://github.com/JackMD >
+ * Copyright (c) 2018 Ifera  < https://github.com/Ifera >
  *
- * Discord: JackMD#3717
- * Twitter: JackMTaylor_
+ * Discord: ifera#3717
+ * Twitter: ifera_tr
  *
  * This software is distributed under "GNU General Public License v3.0".
  * This license allows you to use it and/or modify it but you are not at
@@ -36,8 +36,10 @@ namespace JackMD\VirionTools\commands;
 use JackMD\VirionTools\utils\VirionInjectScript;
 use JackMD\VirionTools\VirionTools;
 use Phar;
+use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
-use pocketmine\command\PluginCommand;
+use pocketmine\plugin\PluginOwned;
+use Webmozart\PathUtil\Path;
 use function file_get_contents;
 use function is_array;
 use function microtime;
@@ -47,87 +49,61 @@ use function strpos;
 use function yaml_parse;
 use const DIRECTORY_SEPARATOR;
 
-class InjectAllCommand extends PluginCommand{
+class InjectAllCommand extends Command implements PluginOwned {
 
-	/** @var VirionTools */
-	private $plugin;
-
-	/**
-	 * InjectAllCommand constructor.
-	 *
-	 * @param VirionTools $plugin
-	 */
-	public function __construct(VirionTools $plugin){
-		parent::__construct("injectall", $plugin);
-
-		$this->setDescription("Inject all virions in the plugin using a single command.");
-		$this->setUsage("/injectall [string:plugin]");
-		$this->setPermission("vt.cmd.ia");
-		$this->setAliases(
-			[
-				"ia"
-			]
+	public function __construct(private VirionTools $plugin) {
+		parent::__construct(
+			"injectall",
+			"Inject all virions in the plugin using a single command",
+			"/injectall <string:plugin>",
+			["ia"]
 		);
 
-		$this->plugin = $plugin;
+		$this->setPermission("vt.cmd.ia");
 	}
 
-	/**
-	 * @param CommandSender $sender
-	 * @param string        $commandLabel
-	 * @param array         $args
-	 */
-	public function execute(CommandSender $sender, string $commandLabel, array $args): void{
-		if(!$this->testPermission($sender)){
-			return;
-		}
+	public function getOwningPlugin(): VirionTools {
+		return $this->plugin;
+	}
 
-		if(!isset($args[0])){
+	public function execute(CommandSender $sender, string $commandLabel, array $args): void {
+		if (!$this->testPermission($sender)) return;
+		if (!isset($args[0])) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cUsage: §7/ia [string:plugin]");
-
 			return;
 		}
 
 		$plugin = (string) $args[0];
+		if (strpos($plugin, ".phar") === false) $plugin = $plugin . ".phar";
 
-		if(strpos($plugin, ".phar") === false){
-			$plugin = $plugin . ".phar";
-		}
-
-		if(!$this->plugin->pluginPharExists($plugin)){
+		if (!$this->plugin->pluginPharExists($plugin)) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cPhar plugin with the name §d" . $plugin . " §cwas not found.");
 			$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the phared plugin, to which the virion is to be injected in, is located in §2plugin_data\VirionTools\plugins.");
-
 			return;
 		}
 
-		$pluginDirectory = $this->plugin->getDataFolder() . "plugins" . DIRECTORY_SEPARATOR;
-		$virionDirectory = $this->plugin->getDataFolder() . "builds" . DIRECTORY_SEPARATOR;
+		$pluginDirectory = Path::join($this->plugin->getDataFolder(), "plugins");
+		$virionDirectory = Path::join($this->plugin->getDataFolder(), "builds");
 
-		$hostPath = $pluginDirectory . $plugin;
-
-		$host = new Phar($hostPath);
+		$host = new Phar(Path::join($pluginDirectory, $plugin));
 		$host->startBuffering();
 
 		$hostPath = "phar://" . str_replace(DIRECTORY_SEPARATOR, "/", $host->getPath()) . "/";
 
-		if(!isset($host["plugin.yml"])){
-			$sender->sendMessage(VirionTools::PREFIX . "§4plugin.yml §cnot found in plugin §6{$plugin}§c. Aborting");
-
+		if (!isset($host["plugin.yml"])) {
+			$sender->sendMessage(VirionTools::PREFIX . "§4plugin.yml §cnot found in plugin §6{$plugin}§c. Aborting..");
 			return;
 		}
 
 		$pluginYml = yaml_parse(file_get_contents($hostPath . "plugin.yml"));
 
-		if(!is_array($pluginYml)){
+		if (!is_array($pluginYml)) {
 			$sender->sendMessage(VirionTools::PREFIX . "§cCorrupted plugin.yml found in plugin §6$plugin");
-
 			return;
 		}
 
-		if(!isset($pluginYml["virions"])){
-			$sender->sendMessage(VirionTools::PREFIX . "§4virions §ckey not found in plugin.yml of §6{$plugin}§c. Aborting.");
-
+		if (!isset($pluginYml["virions"])) {
+			$sender->sendMessage(VirionTools::PREFIX . "§4virions §ckey not found in plugin.yml of §6{$plugin}§c. Aborting..");
 			return;
 		}
 
@@ -138,23 +114,18 @@ class InjectAllCommand extends PluginCommand{
 
 		$virions = $pluginYml["virions"];
 
-		foreach($virions as $virion){
-			if(strpos($virion, ".phar") === false){
-				$virion = $virion . ".phar";
-			}
-
-			if(!$this->plugin->virionPharExists($virion)){
+		foreach ($virions as $virion) {
+			if (strpos($virion, ".phar") === false) $virion = $virion . ".phar";
+			if (!$this->plugin->virionPharExists($virion)) {
 				$sender->sendMessage(VirionTools::PREFIX . "§cVirion with the name §d" . $virion . " §cwas not found.");
 				$sender->sendMessage(VirionTools::PREFIX . "§aMake sure that the virion you want to inject is located in §2plugin_data\VirionTools\builds.");
-
 				continue;
 			}
 
-			$virus = new Phar($virionDirectory . $virion);
+			$virus = new Phar(Path::join($virionDirectory, $virion));
 
-			if(VirionInjectScript::virion_infect($sender, $virion, $virus, $plugin, $host)){
+			if (VirionInjectScript::virion_infect($sender, $virion, $virus, $plugin, $host)) {
 				$sender->sendMessage(VirionTools::PREFIX . "§aVirion §d$virion §asuccessfully injected in plugin §6$plugin");
-
 				$count++;
 			}
 		}
