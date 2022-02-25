@@ -1,10 +1,10 @@
-<img src="https://github.com/JackMD/VirionTools/blob/master/meta/VirionTools.png" height="250" width="250"/>
+<img src="https://github.com/ifera-mc/VirionTools/blob/master/meta/VirionTools.png" height="250" width="250"/>
 
 # VirionTools
 
-| HitCount | License | Poggit | Release |
+| Discord | License | Poggit | Release |
 |:--:|:--:|:--:|:--:|
-|[![HitCount](http://hits.dwyl.io/JackMD/VirionTools.svg)](http://hits.dwyl.io/JackMD/VirionTools)|[![GitHub license](https://img.shields.io/github/license/JackMD/VirionTools.svg)](https://github.com/JackMD/VirionTools/blob/master/LICENSE)|[![Poggit-CI](https://poggit.pmmp.io/ci.shield/JackMD/VirionTools/VirionTools)](https://poggit.pmmp.io/ci/JackMD/VirionTools/VirionTools)|[![](https://poggit.pmmp.io/shield.state/VirionTools)](https://poggit.pmmp.io/p/VirionTools)|
+|[![Chat](https://img.shields.io/badge/chat-on%20discord-7289da.svg)](https://discord.gg/urQt6ETgYu)|[![GitHub license](https://img.shields.io/github/license/ifera-mc/VirionTools.svg)](https://github.com/ifera-mc/VirionTools/blob/master/LICENSE)|[![Poggit-CI](https://poggit.pmmp.io/ci.shield/ifera-mc/VirionTools/VirionTools)](https://poggit.pmmp.io/ci/ifera-mc/VirionTools/VirionTools)|[![](https://poggit.pmmp.io/shield.state/VirionTools)](https://poggit.pmmp.io/p/VirionTools)|
 
 ### A handy plugin for developers who wish to compile and inject virions without using Poggit. 
 
@@ -16,7 +16,7 @@
 
 ### Setup
 
-- Get the [.phar](https://poggit.pmmp.io/ci/JackMD/VirionTools/VirionTools) of this plugin from [poggit](https://poggit.pmmp.io/ci/JackMD/VirionTools/VirionTools)
+- Get the [.phar](https://poggit.pmmp.io/ci/ifera-mc/VirionTools/VirionTools) of this plugin from [poggit](https://poggit.pmmp.io/ci/ifera-mc/VirionTools/VirionTools)
 - Put into your plugins folder.
 - Restart the server.
 - Enjoy..
