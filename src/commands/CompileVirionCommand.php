@@ -40,14 +40,11 @@ use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\plugin\PluginOwned;
 use Webmozart\PathUtil\Path;
-use function addslashes;
 use function file_exists;
 use function ini_get;
 use function is_array;
 use function php_ini_loaded_file;
-use function realpath;
 use function sprintf;
-use function str_replace;
 use function unlink;
 use function yaml_parse_file;
 
@@ -118,7 +115,7 @@ class CompileVirionCommand extends Command implements PluginOwned {
 			$basePath,
 			[],
 			VirionCompileScript::generateVirionMetadataFromYml(Path::join($basePath, "virion.yml")),
-			$this->getStub($basePath),
+			$this->getStub(),
 			Phar::SHA1
 		);
 
@@ -132,15 +129,8 @@ class CompileVirionCommand extends Command implements PluginOwned {
 		return $this->plugin;
 	}
 
-	private function getStub(string $basePath): string {
-		$entry = Path::join($basePath, VirionCompileScript::VIRION_STUB_FILE_NAME);
-		$realEntry = realpath($entry);
-
-		if ($realEntry === false) throw new \RuntimeException("Entry point not found");
-
-		$realEntry = addslashes(str_replace([$basePath, "\\"], ["", "/"], $realEntry));
-
-		return sprintf(VirionCompileScript::VIRION_STUB, $realEntry);
+	private function getStub(): string {
+		return sprintf(VirionCompileScript::VIRION_STUB, VirionCompileScript::VIRION_STUB_FILE_NAME);
 	}
 
 	private function buildVirion(CommandSender $sender, string $pharPath, string $basePath, array $includedPaths, array $metadata, string $stub, int $signatureAlgo = Phar::SHA1): void {
