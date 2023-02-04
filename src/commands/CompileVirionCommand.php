@@ -39,7 +39,7 @@ use Phar;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\plugin\PluginOwned;
-use Webmozart\PathUtil\Path;
+use Symfony\Component\Filesystem\Path;
 use function file_exists;
 use function ini_get;
 use function is_array;

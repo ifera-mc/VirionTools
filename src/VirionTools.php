@@ -38,7 +38,7 @@ use Ifera\VirionTools\commands\InjectAllCommand;
 use Ifera\VirionTools\commands\InjectVirionCommand;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\AssumptionFailedError;
-use Webmozart\PathUtil\Path;
+use Symfony\Component\Filesystem\Path;
 use function dirname;
 use function fclose;
 use function file_exists;
